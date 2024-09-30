@@ -1,17 +1,33 @@
+use std::env;
+use crate::buckets::list_buckets;
+use crate::error::Error;
+
+mod error;
+mod buckets;
+
+mod commands {
+    pub const LIST_BUCKETS: &str = "list-buckets";
+    pub const ALL: [&str; 1] = [LIST_BUCKETS];
+}
+
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let config = aws_config::load_from_env().await;
-    let s3_client = aws_sdk_s3::Client::new(&config);
-    let result = s3_client.list_buckets().send().await?;
-    match result.buckets {
-        None => {
-            println!("No buckets found");
-        }
-        Some(buckets) => {
-            for bucket in buckets {
-                println!("Bucket: {}", bucket.name().unwrap_or("<no name>"));
+async fn main() -> Result<(), Error> {
+    let mut args = env::args();
+    let _ = args.next();
+    match args.next() {
+        Some(arg) => {
+            match arg.as_str() {
+                commands::LIST_BUCKETS => list_buckets().await,
+                _ => Err(Error::from(
+                    format!("Unknown command '{}'. {}", arg, known_commands_are())
+                ))
             }
         }
-    };
-    Ok(())
+        None => Err(Error::from(format!("No command provided. {}", known_commands_are())))
+    }
 }
+
+fn known_commands_are() -> String {
+    format!("Known commands are '{}'.", commands::ALL.join("', '"))
+}
+
