@@ -49,3 +49,15 @@ impl<E: std::error::Error + 'static> From<SdkError<E>> for Error {
         Error::new("AWS SDK error".to_string(), Some(Box::new(error)))
     }
 }
+
+impl From<std::io::Error> for Error {
+    fn from(error: std::io::Error) -> Self {
+        Error::new("I/O error".to_string(), Some(Box::new(error)))
+    }
+}
+
+impl From<aws_sdk_s3::primitives::ByteStreamError> for Error {
+    fn from(error: aws_sdk_s3::primitives::ByteStreamError) -> Self {
+        Error::new("Byte stream error".to_string(), Some(Box::new(error)))
+    }
+}

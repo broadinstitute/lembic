@@ -1,19 +1,23 @@
-use crate::buckets::list_buckets;
+use crate::cli::Command;
 use crate::error::Error;
 
 mod error;
 mod buckets;
 mod cli;
+mod read;
+mod runtime;
+mod s3;
 
-#[tokio::main]
-async fn main() -> Result<(), Error> {
+fn main() -> Result<(), Error> {
+    let runtime = runtime::Runtime::new()?;
     match cli::get_command() {
         Ok(command) => {
             match command {
-                cli::Command::ListBuckets => list_buckets().await
+                Command::ListBuckets => buckets::list(&runtime),
+                Command::ReadObject(name) => read::read(&runtime, &name)
             }
         }
-        Err(e) => Err(e)
+        Err(error) => Err(error)
     }
 }
 

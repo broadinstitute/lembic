@@ -1,9 +1,11 @@
 use crate::error::Error;
+use crate::runtime::Runtime;
 
-pub async fn list_buckets() -> Result<(), Error> {
-    let config = aws_config::load_from_env().await;
-    let s3_client = aws_sdk_s3::Client::new(&config);
-    let result = s3_client.list_buckets().send().await?;
+pub(crate) fn list(runtime: &Runtime) -> Result<(), Error> {
+    let result =
+        runtime.tokio().block_on(async {
+            runtime.s3_client().list_buckets().send().await
+        })?;
     match result.buckets {
         None => {
             println!("No buckets found");
