@@ -1,5 +1,5 @@
-use std::fmt::{Debug, Display, Formatter};
 use aws_sdk_s3::error::SdkError;
+use std::fmt::{Debug, Display, Formatter};
 
 pub struct Error {
     message: String,
@@ -17,10 +17,13 @@ impl Error {
 
 impl Display for Error {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self.source() {
-            Some(source) => write!(f, "{}: {}", self.message, source),
-            None => write!(f, "{}", self.message)
+        write!(f, "{}", self.message)?;
+        let mut source = self.source();
+        while let Some(e) = source {
+            write!(f, ": {}", e)?;
+            source = e.source();
         }
+        Ok(())
     }
 }
 
