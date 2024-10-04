@@ -2,12 +2,12 @@ use crate::error::Error;
 
 mod commands {
     pub(crate) const LIST_BUCKETS: &str = "list-buckets";
-    pub(crate) const READ_OBJECT: &str = "read-object";
-    pub(crate) const ALL: [&str; 2] = [LIST_BUCKETS, READ_OBJECT];
+    pub(crate) const PRINT_LINES: &str = "print-lines";
+    pub(crate) const ALL: [&str; 2] = [LIST_BUCKETS, PRINT_LINES];
 }
 pub(crate) enum Command {
     ListBuckets,
-    ReadObject(String),
+    PrintLines(String),
 }
 
 pub(crate) fn get_command() -> Result<Command, Error> {
@@ -17,9 +17,9 @@ pub(crate) fn get_command() -> Result<Command, Error> {
         Some(arg) => {
             match arg.as_str() {
                 commands::LIST_BUCKETS => Ok(Command::ListBuckets),
-                commands::READ_OBJECT => {
+                commands::PRINT_LINES => {
                     match args.next() {
-                        Some(name) => Ok(Command::ReadObject(name)),
+                        Some(name) => Ok(Command::PrintLines(name)),
                         None => Err(Error::from("No object name provided."))
                     }
                 }

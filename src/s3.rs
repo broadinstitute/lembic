@@ -1,5 +1,8 @@
 use std::fmt::Display;
 use crate::error::Error;
+use crate::pipe::LinePipe;
+use crate::runtime::Runtime;
+use tokio::io::AsyncBufReadExt;
 
 pub(crate) struct S3Location {
     bucket: String,
@@ -33,4 +36,22 @@ impl Display for S3Location {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "s3://{}/{}", self.bucket, self.key)
     }
+}
+
+pub(crate) fn process<P>(runtime: &Runtime, pipe: &P) -> Result<(), Error>
+where P: LinePipe{
+    runtime.tokio().block_on(async {
+        let response =
+            runtime.s3_client().get_object()
+                .bucket(pipe.location().bucket())
+                .key(pipe.location().key())
+                .send()
+                .await?;
+        let mut lines = response.body.into_async_read().lines();
+        while let Some(line) = lines.next_line().await? {
+            pipe.process(line)?;
+        };
+        Ok::<(), Error>(())
+    })?;
+    Ok(())
 }

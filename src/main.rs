@@ -7,6 +7,7 @@ mod cli;
 mod read;
 mod runtime;
 mod s3;
+mod pipe;
 
 fn main() -> Result<(), Error> {
     let runtime = runtime::Runtime::new()?;
@@ -14,7 +15,7 @@ fn main() -> Result<(), Error> {
         Ok(command) => {
             match command {
                 Command::ListBuckets => buckets::list(&runtime),
-                Command::ReadObject(name) => read::read(&runtime, &name)
+                Command::PrintLines(name) => read::print_lines(&runtime, &name)
             }
         }
         Err(error) => Err(error)
