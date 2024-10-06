@@ -1,25 +1,24 @@
 use crate::error::Error;
 use crate::runtime::Runtime;
 use crate::s3::S3Location;
-use crate::pipe::{LinePipe, Status};
+use crate::pipe::{LinePipe, NextSummary, Summary};
 use crate::s3;
 
-struct LinePrinterStatus {
+struct LinePrinterSummary {
     count: usize
 }
 
-impl LinePrinterStatus {
-    pub(crate) fn new() -> LinePrinterStatus { LinePrinterStatus { count: 0 } }
+impl LinePrinterSummary {
+    pub(crate) fn new() -> LinePrinterSummary { LinePrinterSummary { count: 0 } }
 }
 
-impl<'a> Status for LinePrinterStatus {
-    type Current = &'a str;
-    type Summary = usize;
-    fn next(self, _line: String) -> Result<Self, Error> {
-        Ok(LinePrinterStatus { count: self.count + 1 })
+impl Summary for LinePrinterSummary {
+    type Current = String;
+    fn next(self, line: String) -> Result<NextSummary<Self>, Error> {
+        println!("{}", line);
+        let summary = LinePrinterSummary { count: self.count + 1 };
+        Ok(NextSummary { summary, current: line })
     }
-    fn current(&self) -> usize { self.count }
-    fn summary(&self) -> usize { self.count }
 }
 struct LinePrinter {
     location: S3Location
@@ -29,12 +28,9 @@ impl LinePrinter {
     pub(crate) fn new(location: S3Location) -> LinePrinter { LinePrinter { location } }
 }
 impl LinePipe for LinePrinter {
-    type Output = ();
+    type Summary = LinePrinterSummary;
     fn location(&self) -> &S3Location { &self.location }
-    fn process(&self, line: String) -> Result<Option<Self::Output>, Error> {
-        println!("{}", line);
-        Ok(None)
-    }
+    fn new_summary(&self) -> Self::Summary { LinePrinterSummary::new() }
 }
 
 pub(crate) fn print_lines(runtime: &Runtime, location: &str) -> Result<(), Error> {

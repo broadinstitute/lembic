@@ -1,6 +1,6 @@
 use std::fmt::Display;
 use crate::error::Error;
-use crate::pipe::LinePipe;
+use crate::pipe::{LinePipe, Summary};
 use crate::runtime::Runtime;
 use tokio::io::AsyncBufReadExt;
 
@@ -48,8 +48,9 @@ where P: LinePipe{
                 .send()
                 .await?;
         let mut lines = response.body.into_async_read().lines();
+        let mut summary = pipe.new_summary();
         while let Some(line) = lines.next_line().await? {
-            pipe.process(line)?;
+            summary = summary.next(line)?.summary;
         };
         Ok::<(), Error>(())
     })?;

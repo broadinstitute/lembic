@@ -1,15 +1,18 @@
 use crate::error::Error;
 use crate::s3::S3Location;
 
-pub(crate) trait Status {
+pub(crate) trait Summary {
     type Current;
-    type Summary;
-    fn next(self, line: String) -> Result<Self, Error>;
-    fn current(&self) -> Self::Current;
-    fn summary(&self) -> Self::Summary;
+    fn next(self, line: String) -> Result<NextSummary<Self>, Error> where Self: Sized;
 }
+
+pub(crate) struct NextSummary<S: Summary> {
+    pub(crate) summary: S,
+    pub(crate) current: S::Current,
+}
+
 pub(crate) trait LinePipe {
-    type S: Status;
+    type Summary: Summary;
     fn location(&self) -> &S3Location;
-    fn new_status(&self) -> Self::S;
+    fn new_summary(&self) -> Self::Summary;
 }
