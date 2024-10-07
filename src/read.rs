@@ -33,9 +33,8 @@ impl LinePipe for LinePrinter {
     fn new_summary(&self) -> Self::Summary { LinePrinterSummary::new() }
 }
 
-pub(crate) fn print_lines(runtime: &Runtime, location: &str) -> Result<(), Error> {
-    let location = S3Location::try_from(location)?;
-    let pipe = LinePrinter::new(location);
+pub(crate) fn print_lines(runtime: &Runtime, location: &S3Location) -> Result<(), Error> {
+    let pipe = LinePrinter::new(location.clone());
     s3::process(runtime, &pipe)?;
     Ok(())
 }

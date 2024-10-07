@@ -4,12 +4,17 @@ use crate::pipe::{LinePipe, Summary};
 use crate::runtime::Runtime;
 use tokio::io::AsyncBufReadExt;
 
+#[derive(Clone)]
 pub(crate) struct S3Location {
     bucket: String,
     key: String,
 }
 
 impl S3Location {
+    pub(crate) fn new(bucket: String, key: String) -> S3Location { S3Location { bucket, key } }
+    pub(crate) fn from_strs(bucket: &str, key: &str) -> S3Location {
+        S3Location::new(bucket.to_string(), key.to_string())
+    }
     pub(crate) fn bucket(&self) -> &str { &self.bucket }
     pub(crate) fn key(&self) -> &str { &self.key }
 }
