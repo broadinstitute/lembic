@@ -10,15 +10,14 @@ pub(crate) enum Command {
     PrintLines(String),
 }
 
-pub(crate) fn get_command() -> Result<Command, Error> {
-    let mut args = std::env::args();
-    let _ = args.next();
-    match args.next() {
+pub(crate) fn get_command_from_part<I>(mut parts: I) -> Result<Command, Error>
+where I: Iterator<Item=String> {
+    match parts.next() {
         Some(arg) => {
             match arg.as_str() {
                 commands::LIST_BUCKETS => Ok(Command::ListBuckets),
                 commands::PRINT_LINES => {
-                    match args.next() {
+                    match parts.next() {
                         Some(name) => Ok(Command::PrintLines(name)),
                         None => Err(Error::from("No object name provided."))
                     }
@@ -34,4 +33,10 @@ pub(crate) fn get_command() -> Result<Command, Error> {
 
 fn known_commands_are() -> String {
     format!("Known commands are '{}'.", commands::ALL.join("', '"))
+}
+
+pub(crate) fn get_command_cli() -> Result<Command, Error> {
+    let mut args = std::env::args();
+    let _ = args.next();
+    get_command_from_part(args)
 }

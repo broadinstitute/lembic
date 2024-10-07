@@ -8,10 +8,11 @@ mod read;
 mod runtime;
 mod s3;
 mod pipe;
+mod interpreter;
 
 fn main() -> Result<(), Error> {
     let runtime = runtime::Runtime::new()?;
-    match cli::get_command() {
+    match cli::get_command_cli() {
         Ok(command) => {
             match command {
                 Command::ListBuckets => buckets::list(&runtime),
