@@ -10,6 +10,7 @@ mod pipe;
 mod dsl;
 mod execute;
 mod data;
+mod json;
 
 fn main() -> Result<(), Error> {
     let runtime = runtime::Runtime::new()?;

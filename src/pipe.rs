@@ -1,5 +1,5 @@
 use crate::error::Error;
-use crate::s3::S3Location;
+use crate::s3::S3Uri;
 
 pub(crate) trait Summary {
     type Current;
@@ -13,6 +13,7 @@ pub(crate) struct NextSummary<S: Summary> {
 
 pub(crate) trait LinePipe {
     type Summary: Summary;
-    fn location(&self) -> &S3Location;
+    fn s3uri(&self) -> &S3Uri;
     fn new_summary(&self) -> Self::Summary;
 }
+

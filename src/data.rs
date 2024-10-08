@@ -4,7 +4,7 @@
 // s3://dig-analysis-cfde/exRNA/bioindex/gene-counts/part-00000.json
 
 use crate::error::Error;
-use crate::s3::S3Location;
+use crate::s3::S3Uri;
 
 const DIG_ANALYSIS_CFDE: &str = "dig-analysis-cfde";
 const GTEX_TSTAT: &str = "GTEx/bioindex/tstat/part-00000.json";
@@ -21,22 +21,22 @@ mod shorts {
         [GTEX_TSTAT, GTEX_SLSDC_MONDO, FOURDN_GENE_BIO, EXRNA_GENE_COUNTS];
 }
 
-pub(crate) fn get_data_location(input: &str) -> Result<S3Location, Error> {
+pub(crate) fn get_data_location(input: &str) -> Result<S3Uri, Error> {
     if let Some(short_name) = input.strip_prefix('@') {
         match short_name {
-            shorts::GTEX_TSTAT => Ok(S3Location::from_strs(DIG_ANALYSIS_CFDE, GTEX_TSTAT)),
+            shorts::GTEX_TSTAT => Ok(S3Uri::from_strs(DIG_ANALYSIS_CFDE, GTEX_TSTAT)),
             shorts::GTEX_SLSDC_MONDO =>
-                Ok(S3Location::from_strs(DIG_ANALYSIS_CFDE, GTEX_SLSDC_MONDO)),
+                Ok(S3Uri::from_strs(DIG_ANALYSIS_CFDE, GTEX_SLSDC_MONDO)),
             shorts::FOURDN_GENE_BIO =>
-                Ok(S3Location::from_strs(DIG_ANALYSIS_CFDE, FOURDN_GENE_BIO)),
+                Ok(S3Uri::from_strs(DIG_ANALYSIS_CFDE, FOURDN_GENE_BIO)),
             shorts::EXRNA_GENE_COUNTS =>
-                Ok(S3Location::from_strs(DIG_ANALYSIS_CFDE, EXRNA_GENE_COUNTS)),
+                Ok(S3Uri::from_strs(DIG_ANALYSIS_CFDE, EXRNA_GENE_COUNTS)),
             _ => Err(Error::from(
                 format!("Unknown short name: '{}'. Known short names are '{}'.", input
                     , shorts::ALL.join("', '"))
             ))
         }
     } else {
-        S3Location::try_from(input)
+        S3Uri::try_from(input)
     }
 }

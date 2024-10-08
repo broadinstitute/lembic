@@ -1,6 +1,6 @@
 use crate::error::Error;
 use crate::runtime::Runtime;
-use crate::s3::S3Location;
+use crate::s3::S3Uri;
 use crate::pipe::{LinePipe, NextSummary, Summary};
 use crate::s3;
 
@@ -21,20 +21,20 @@ impl Summary for LinePrinterSummary {
     }
 }
 struct LinePrinter {
-    location: S3Location
+    location: S3Uri
 }
 
 impl LinePrinter {
-    pub(crate) fn new(location: S3Location) -> LinePrinter { LinePrinter { location } }
+    pub(crate) fn new(location: S3Uri) -> LinePrinter { LinePrinter { location } }
 }
 impl LinePipe for LinePrinter {
     type Summary = LinePrinterSummary;
-    fn location(&self) -> &S3Location { &self.location }
+    fn s3uri(&self) -> &S3Uri { &self.location }
     fn new_summary(&self) -> Self::Summary { LinePrinterSummary::new() }
 }
 
-pub(crate) fn print_lines(runtime: &Runtime, location: &S3Location) -> Result<(), Error> {
-    let pipe = LinePrinter::new(location.clone());
+pub(crate) fn print_lines(runtime: &Runtime, s3uri: &S3Uri) -> Result<(), Error> {
+    let pipe = LinePrinter::new(s3uri.clone());
     s3::process(runtime, &pipe)?;
     Ok(())
 }

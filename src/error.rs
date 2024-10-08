@@ -64,3 +64,9 @@ impl From<aws_sdk_s3::primitives::ByteStreamError> for Error {
         Error::new("Byte stream error".to_string(), Some(Box::new(error)))
     }
 }
+
+impl From<serde_json::Error> for Error {
+    fn from(error: serde_json::Error) -> Self {
+        Error::new("JSON error".to_string(), Some(Box::new(error)))
+    }
+}
