@@ -137,7 +137,7 @@ impl Summary for JsonSchema {
         if let Value::Object(_) = &value {
             summary.add_object(&value)?;
         }
-        Ok(NextSummary { summary, current: value })
+        Ok(NextSummary { summary })
     }
 }
 impl LinePipe for JsonSchemaPipe {
@@ -172,7 +172,7 @@ impl Summary for TabularPrinterSummary {
             }
             println!();
         }
-        Ok(NextSummary { summary, current: () })
+        Ok(NextSummary { summary })
     }
 }
 
@@ -182,6 +182,7 @@ impl LinePipe for TabularPrinterPipe {
     fn s3uri(&self) -> &S3Uri { &self.s3uri }
 
     fn new_summary(&self) -> TabularPrinterSummary {
+        println!("#{}", self.columns.join("\t"));
         TabularPrinterSummary { columns: self.columns.clone() }
     }
 }

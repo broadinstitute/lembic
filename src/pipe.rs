@@ -8,7 +8,6 @@ pub(crate) trait Summary {
 
 pub(crate) struct NextSummary<S: Summary> {
     pub(crate) summary: S,
-    pub(crate) current: S::Current,
 }
 
 pub(crate) trait LinePipe {

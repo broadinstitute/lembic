@@ -17,7 +17,7 @@ impl Summary for LinePrinterSummary {
     fn next(self, line: String) -> Result<NextSummary<Self>, Error> {
         println!("{}", line);
         let summary = LinePrinterSummary { count: self.count + 1 };
-        Ok(NextSummary { summary, current: line })
+        Ok(NextSummary { summary })
     }
 }
 struct LinePrinter {
