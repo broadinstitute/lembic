@@ -7,13 +7,16 @@ mod commands {
     pub(crate) const PRINT_LINES: &str = "print-lines";
     pub(crate) const PRINT_SCHEMA: &str = "print-schema";
     pub(crate) const PRINT_TABULAR: &str = "print-tabular";
-    pub(crate) const ALL: [&str; 4] = [LIST_BUCKETS, PRINT_LINES, PRINT_SCHEMA, PRINT_TABULAR];
+    pub(crate) const LIST_SOURCES: &str = "list-sources";
+    pub(crate) const ALL: [&str; 5] =
+        [LIST_BUCKETS, PRINT_LINES, PRINT_SCHEMA, PRINT_TABULAR, LIST_SOURCES];
 }
 pub(crate) enum Command {
     ListBuckets,
     PrintLines(S3Uri),
     PrintSchema(S3Uri),
     PrintTabular(S3Uri, Vec<String>),
+    ListSources
 }
 
 pub(crate) fn get_command_from_parts<I>(mut parts: I) -> Result<Command, Error>
@@ -35,6 +38,7 @@ where I: Iterator<Item=String> {
                     let columns = parts.collect();
                     Ok(Command::PrintTabular(s3uri, columns))
                 }
+                commands::LIST_SOURCES => Ok(Command::ListSources),
                 _ => Err(Error::from(
                     format!("Unknown command '{}'. {}", arg, known_commands_are())
                 ))

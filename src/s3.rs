@@ -11,7 +11,7 @@ pub(crate) struct S3Uri {
 }
 
 impl S3Uri {
-    pub(crate) fn new(bucket: String, key: String) -> S3Uri { S3Uri { bucket, key } }
+    pub(crate) const fn new(bucket: String, key: String) -> S3Uri { S3Uri { bucket, key } }
     pub(crate) fn from_strs(bucket: &str, key: &str) -> S3Uri {
         S3Uri::new(bucket.to_string(), key.to_string())
     }
