@@ -1,4 +1,4 @@
-use crate::{buckets, data, json, read};
+use crate::{buckets, data, distill, json, read};
 use crate::dsl::Command;
 use crate::error::Error;
 use crate::runtime::Runtime;
@@ -15,5 +15,7 @@ pub(crate) fn execute(runtime: &Runtime, command: &Command) -> Result<(), Error>
             data::list_sources();
             Ok(())
         }
+        Command::ReportStats => { distill::report_stats(runtime) }
+        Command::ReportStatsTstat => { distill::tstat::report_tstat(runtime) }
     }
 }

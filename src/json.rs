@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 use std::fmt::{Display, Formatter};
-use serde_json::Value;
+use serde_json::{Map, Value};
 use crate::error::Error;
 use crate::pipe::{LinePipe, NextSummary, Summary};
 use crate::runtime::Runtime;
@@ -129,8 +129,6 @@ impl JsonSchemaPipe {
 }
 
 impl Summary for JsonSchema {
-    type Current = Value;
-
     fn next(self, line: String) -> Result<NextSummary<Self>, Error> {
         let value: Value = serde_json::from_str(&line)?;
         let mut summary = self;
@@ -157,8 +155,6 @@ struct TabularPrinterPipe {
 }
 
 impl Summary for TabularPrinterSummary {
-    type Current = ();
-
     fn next(self, line: String) -> Result<NextSummary<Self>, Error> {
         let value: Value = serde_json::from_str(&line)?;
         let summary = self;
@@ -186,3 +182,44 @@ impl LinePipe for TabularPrinterPipe {
         TabularPrinterSummary { columns: self.columns.clone() }
     }
 }
+
+pub(crate) fn as_json_obj(string: &str) -> Result<Map<String, Value>, Error> {
+    let value: Value = serde_json::from_str(string)?;
+    if let Value::Object(map) = value {
+        Ok(map)
+    } else {
+        Err(Error::from(format!("Expected JSON object, but got {}", value)))
+    }
+}
+
+pub(crate) fn get_string(map: &Map<String, Value>, key: &str) -> Result<String, Error> {
+    if let Some(value) = map.get(key) {
+        if let Value::String(string) = value {
+            Ok(string.clone())
+        } else {
+            Err(Error::from(
+                format!("Expected string field '{}', but got {}", key, value)
+            ))
+        }
+    } else {
+        Err(Error::from(format!("Missing field '{}'", key)))
+    }
+}
+
+pub(crate) fn get_number(map: &Map<String, Value>, key: &str) -> Result<f64, Error> {
+    if let Some(value) = map.get(key) {
+        if let Value::Number(number) = value {
+            let number_f64 = number.as_f64().ok_or_else(|| {
+                Error::from(format!("Cannot represent {} as a 64 bit float", number))
+            })?;
+            Ok(number_f64)
+        } else {
+            Err(Error::from(
+                format!("Expected number field '{}', but got {}", key, value)
+            ))
+        }
+    } else {
+        Err(Error::from(format!("Missing field '{}'", key)))
+    }
+}
+

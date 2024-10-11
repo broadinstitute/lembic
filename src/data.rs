@@ -9,7 +9,7 @@ pub(crate) struct PredefDataSource {
     pub(crate) key: &'static str,
 }
 
-mod sources {
+pub(crate) mod sources {
     use super::PredefDataSource;
     pub(crate) const GTEX_TSTAT: PredefDataSource =
         PredefDataSource::new("gtex_tstat", super::DIG_ANALYSIS_CFDE,

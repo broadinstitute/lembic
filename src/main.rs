@@ -11,6 +11,7 @@ mod dsl;
 mod execute;
 mod data;
 mod json;
+mod distill;
 
 fn main() -> Result<(), Error> {
     let runtime = runtime::Runtime::new()?;

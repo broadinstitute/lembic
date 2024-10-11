@@ -2,7 +2,6 @@ use crate::error::Error;
 use crate::s3::S3Uri;
 
 pub(crate) trait Summary {
-    type Current;
     fn next(self, line: String) -> Result<NextSummary<Self>, Error> where Self: Sized;
 }
 
