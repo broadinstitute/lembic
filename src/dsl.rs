@@ -1,4 +1,4 @@
-use crate::data::get_data_location;
+use crate::data::{get_data_location, Source};
 use crate::error::Error;
 use crate::s3::S3Uri;
 
@@ -9,11 +9,9 @@ mod commands {
     pub(crate) const PRINT_TABULAR: &str = "print-tabular";
     pub(crate) const LIST_SOURCES: &str = "list-sources";
     pub(crate) const REPORT_STATS: &str = "report-stats";
-    pub(crate) const REPORT_STATS_TSTAT: &str = "report-stats-tstat";
-    pub(crate) const ALL: [&str; 7] =
+    pub(crate) const ALL: [&str; 6] =
         [
-            LIST_BUCKETS, PRINT_LINES, PRINT_SCHEMA, PRINT_TABULAR, LIST_SOURCES, REPORT_STATS,
-            REPORT_STATS_TSTAT
+            LIST_BUCKETS, PRINT_LINES, PRINT_SCHEMA, PRINT_TABULAR, LIST_SOURCES, REPORT_STATS
         ];
 }
 pub(crate) enum Command {
@@ -22,8 +20,7 @@ pub(crate) enum Command {
     PrintSchema(S3Uri),
     PrintTabular(S3Uri, Vec<String>),
     ListSources,
-    ReportStats,
-    ReportStatsTstat,
+    ReportStats(Option<Source>),
 }
 
 pub(crate) fn get_command_from_parts<I>(mut parts: I) -> Result<Command, Error>
@@ -46,8 +43,12 @@ where I: Iterator<Item=String> {
                     Ok(Command::PrintTabular(s3uri, columns))
                 }
                 commands::LIST_SOURCES => Ok(Command::ListSources),
-                commands::REPORT_STATS => Ok(Command::ReportStats),
-                commands::REPORT_STATS_TSTAT => Ok(Command::ReportStatsTstat),
+                commands::REPORT_STATS => {
+                    let source =
+                        parts.next().map(|name| Source::try_from(name.as_str()))
+                            .transpose()?;
+                    Ok(Command::ReportStats(source))
+                },
                 _ => Err(Error::from(
                     format!("Unknown command '{}'. {}", arg, known_commands_are())
                 ))

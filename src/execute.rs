@@ -15,7 +15,13 @@ pub(crate) fn execute(runtime: &Runtime, command: &Command) -> Result<(), Error>
             data::list_sources();
             Ok(())
         }
-        Command::ReportStats => { distill::report_stats(runtime) }
-        Command::ReportStatsTstat => { distill::tstat::report_tstat(runtime) }
+        Command::ReportStats(source) => {
+            match source {
+                Some(source) => {
+                    distill::report_stats_source(runtime, source)
+                }
+                None => { distill::report_stats(runtime) }
+            }
+        }
     }
 }

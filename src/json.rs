@@ -192,15 +192,17 @@ pub(crate) fn as_json_obj(string: &str) -> Result<Map<String, Value>, Error> {
     }
 }
 
+fn field_as_string(value: &Value, key: &str) -> Result<String, Error> {
+    if let Value::String(string) = value {
+        Ok(string.clone())
+    } else {
+        Err(Error::from(format!("Expected string field '{}', but got {}", key, value)))
+    }
+}
+
 pub(crate) fn get_string(map: &Map<String, Value>, key: &str) -> Result<String, Error> {
     if let Some(value) = map.get(key) {
-        if let Value::String(string) = value {
-            Ok(string.clone())
-        } else {
-            Err(Error::from(
-                format!("Expected string field '{}', but got {}", key, value)
-            ))
-        }
+        field_as_string(value, key)
     } else {
         Err(Error::from(format!("Missing field '{}'", key)))
     }
@@ -222,4 +224,17 @@ pub(crate) fn get_number(map: &Map<String, Value>, key: &str) -> Result<f64, Err
         Err(Error::from(format!("Missing field '{}'", key)))
     }
 }
+
+pub(crate) fn get_string_fallback(map: &Map<String, Value>, key: &str, key2: &str)
+                                  -> Result<String, Error> {
+    if let Some(value) = map.get(key).filter(|value| !value.is_null()) {
+        field_as_string(value, key)
+    } else if let Some(value) = map.get(key2) {
+        field_as_string(value, key2)
+    } else {
+        Err(Error::from(format!("Missing both fields '{}' and '{}'", key, key2)))
+    }
+}
+
+
 
