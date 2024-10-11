@@ -18,7 +18,8 @@ pub(crate) fn execute(runtime: &Runtime, command: &Command) -> Result<(), Error>
         Command::ReportStats(source) => {
             match source {
                 Some(source) => {
-                    distill::report_stats_source(runtime, source)
+                    distill::report_stats_source(runtime, source)?;
+                    Ok(())
                 }
                 None => { distill::report_stats(runtime) }
             }

@@ -7,7 +7,7 @@ use crate::runtime::Runtime;
 use crate::{json, s3};
 use crate::s3::S3Uri;
 
-pub(crate) fn report_gtex_tstat(runtime: &Runtime) -> Result<(), Error> {
+pub(crate) fn report_gtex_tstat(runtime: &Runtime) -> Result<usize, Error> {
     println!("From the GTex tstat data:");
     let summary_raw = distill_gtex_tstat(runtime)?;
     println!("Original records: {}", summary_raw.n_original);
@@ -15,7 +15,7 @@ pub(crate) fn report_gtex_tstat(runtime: &Runtime) -> Result<(), Error> {
     let summary = summary_raw.only_keep_tenth();
     println!("Assertions: gene - specifically expressed in - biosample ({})",
              summary.count_assertions());
-    Ok(())
+    Ok(summary.count_assertions())
 }
 
 pub(crate) fn distill_gtex_tstat(runtime: &Runtime) -> Result<GtexTstatSummary, Error> {
@@ -57,8 +57,8 @@ impl GtexTstatSummary {
         }
         GtexTstatSummary { n_original, biosample_to_genes }
     }
-    pub(crate) fn count_assertions(&self) -> u64 {
-        self.biosample_to_genes.values().map(|v| v.len() as u64).sum()
+    pub(crate) fn count_assertions(&self) -> usize {
+        self.biosample_to_genes.values().map(|v| v.len()).sum()
     }
 }
 

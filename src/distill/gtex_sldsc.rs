@@ -6,14 +6,14 @@ use crate::pipe::{LinePipe, NextSummary, Summary};
 use crate::runtime::Runtime;
 use crate::s3::S3Uri;
 
-pub(crate) fn report_gtex_sldsc(runtime: &Runtime) -> Result<(), Error> {
+pub(crate) fn report_gtex_sldsc(runtime: &Runtime) -> Result<usize, Error> {
     println!("From the GTex SLDSC data:");
     let summary = distill_gtex_sldsc(runtime)?;
     println!("Original records: {}", summary.n_original);
     println!("Filtered records: {}", summary.n_filtered);
     println!("Assertions: biosample - enriched for - mondo id ({})",
              summary.mondo_id_tissues.len());
-    Ok(())
+    Ok(summary.mondo_id_tissues.len())
 }
 
 pub(crate) fn distill_gtex_sldsc(runtime: &Runtime) -> Result<GtexSldscSummary, Error> {
@@ -72,11 +72,7 @@ impl Summary for GtexSldscSummary {
             mondo_id_tissues.insert(MondoIdTissue::new(mondo_id, tissue));
         }
         Ok(NextSummary {
-            summary: GtexSldscSummary {
-                n_original,
-                n_filtered,
-                mondo_id_tissues
-            }
+            summary: GtexSldscSummary { n_original, n_filtered, mondo_id_tissues }
         })
     }
 }
