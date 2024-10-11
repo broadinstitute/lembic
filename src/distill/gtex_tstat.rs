@@ -8,7 +8,7 @@ use crate::{json, s3};
 use crate::s3::S3Uri;
 
 pub(crate) fn report_gtex_tstat(runtime: &Runtime) -> Result<usize, Error> {
-    println!("From the GTex tstat data:");
+    println!("From the GTEx tstat data:");
     let summary_raw = distill_gtex_tstat(runtime)?;
     println!("Original records: {}", summary_raw.n_original);
     println!("Deduplicated records: {}", summary_raw.count_assertions());

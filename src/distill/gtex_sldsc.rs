@@ -7,7 +7,7 @@ use crate::runtime::Runtime;
 use crate::s3::S3Uri;
 
 pub(crate) fn report_gtex_sldsc(runtime: &Runtime) -> Result<usize, Error> {
-    println!("From the GTex SLDSC data:");
+    println!("From the GTEx SLDSC data:");
     let summary = distill_gtex_sldsc(runtime)?;
     println!("Original records: {}", summary.n_original);
     println!("Filtered records: {}", summary.n_filtered);

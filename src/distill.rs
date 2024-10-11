@@ -1,6 +1,7 @@
 pub(crate) mod gtex_tstat;
 mod gtex_sldsc;
 mod four_dn;
+mod ex_rna;
 
 use crate::data;
 use crate::data::Source;
@@ -11,6 +12,7 @@ pub(crate) fn report_stats(runtime: &Runtime) -> Result<(), Error> {
     let mut n_assertions: usize = 0;
     for source in data::ALL_SOURCES {
         n_assertions += report_stats_source(runtime, &source)?;
+        println!()
     }
     println!("Total assertions across all data: {}", n_assertions);
     Ok(())
@@ -20,8 +22,8 @@ pub(crate) fn report_stats_source(runtime: &Runtime, source: &Source) -> Result<
     match source {
         Source::GtexTstat => gtex_tstat::report_gtex_tstat(runtime),
         Source::GtexSldsc => gtex_sldsc::report_gtex_sldsc(runtime),
-        Source::FourDnGeneBio => { four_dn::report_four_dn(runtime) }
-        Source::ExRnaGeneCounts => { todo!() }
+        Source::FourDnGeneBio => four_dn::report_four_dn(runtime),
+        Source::ExRnaGeneCounts => ex_rna::report_ex_rna(runtime)
     }
 }
 
