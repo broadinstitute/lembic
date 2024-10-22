@@ -70,3 +70,9 @@ impl From<serde_json::Error> for Error {
         Error::new("JSON error".to_string(), Some(Box::new(error)))
     }
 }
+
+impl From<penyu::error::PenyuError> for Error {
+    fn from(error: penyu::error::PenyuError) -> Self {
+        Error::new("Penyu error".to_string(), Some(Box::new(error)))
+    }
+}

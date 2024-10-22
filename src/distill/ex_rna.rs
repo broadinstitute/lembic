@@ -1,4 +1,5 @@
 use std::collections::BTreeSet;
+use penyu::model::graph::MemoryGraph;
 use crate::data::sources;
 use crate::error::Error;
 use crate::{json, s3};
@@ -66,4 +67,8 @@ impl LinePipe for ExRnaPipe {
     type Summary = ExRnaSummary;
     fn s3uri(&self) -> &S3Uri { &self.s3uri }
     fn new_summary(&self) -> Self::Summary { ExRnaSummary::new() }
+}
+
+pub(crate) fn add_triples_ex_rna(p0: &mut MemoryGraph, p1: &Runtime) -> Result<(), Error> {
+    todo!()
 }

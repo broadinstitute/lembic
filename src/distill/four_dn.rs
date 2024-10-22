@@ -1,4 +1,5 @@
 use std::collections::BTreeSet;
+use penyu::model::graph::MemoryGraph;
 use crate::data::sources;
 use crate::error::Error;
 use crate::{json, s3};
@@ -91,3 +92,6 @@ impl LinePipe for FourDnPipe {
     }
 }
 
+pub(crate) fn add_triples_four_dn(p0: &mut MemoryGraph, p1: &Runtime) -> Result<(), Error> {
+    todo!()
+}

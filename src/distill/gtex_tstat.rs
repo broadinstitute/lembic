@@ -1,5 +1,6 @@
 use std::cmp::max;
 use std::collections::BTreeMap;
+use penyu::model::graph::MemoryGraph;
 use crate::data::sources;
 use crate::error::Error;
 use crate::pipe::{LinePipe, NextSummary, Summary};
@@ -20,7 +21,7 @@ pub(crate) fn report_gtex_tstat(runtime: &Runtime) -> Result<usize, Error> {
 
 pub(crate) fn distill_gtex_tstat(runtime: &Runtime) -> Result<GtexTstatSummary, Error> {
     let s3uri = sources::GTEX_TSTAT.to_s3uri();
-    let pipe = GtextTstatPipe::new(s3uri);
+    let pipe = GtexTstatPipe::new(s3uri);
     let summary = s3::process(runtime, &pipe)?;
     Ok(summary)
 }
@@ -34,7 +35,7 @@ pub(crate) struct GtexTstatSummary {
     biosample_to_genes: BTreeMap<String, Vec<GeneTstat>>,
 }
 
-pub(crate) struct GtextTstatPipe {
+pub(crate) struct GtexTstatPipe {
     s3uri: S3Uri,
 }
 impl GtexTstatSummary {
@@ -85,12 +86,17 @@ impl Summary for GtexTstatSummary {
     }
 }
 
-impl GtextTstatPipe {
-    pub(crate) fn new(s3uri: S3Uri) -> GtextTstatPipe { GtextTstatPipe { s3uri } }
+impl GtexTstatPipe {
+    pub(crate) fn new(s3uri: S3Uri) -> GtexTstatPipe { GtexTstatPipe { s3uri } }
 }
 
-impl LinePipe for GtextTstatPipe {
+impl LinePipe for GtexTstatPipe {
     type Summary = GtexTstatSummary;
     fn s3uri(&self) -> &S3Uri { &self.s3uri }
     fn new_summary(&self) -> Self::Summary { GtexTstatSummary::new() }
+}
+
+pub(crate) fn add_triples_gtex_tstat(p0: &mut MemoryGraph, p1: &Runtime) -> Result<(), Error> {
+
+    todo!()
 }
