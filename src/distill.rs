@@ -4,11 +4,11 @@ mod four_dn;
 mod ex_rna;
 
 use penyu::model::graph::MemoryGraph;
-use crate::data;
+use crate::{data, vocabs};
 use crate::data::Source;
 use crate::error::Error;
 use crate::runtime::Runtime;
-use penyu::vocabs;
+use penyu::vocabs::{obo, xsd};
 
 pub(crate) fn report_stats(runtime: &Runtime, source: &Option<Source>) -> Result<(), Error> {
     match source {
@@ -40,8 +40,9 @@ pub(crate) fn report_stats_source(runtime: &Runtime, source: &Source) -> Result<
 
 pub(crate) fn print_turtle(runtime: &Runtime, source: &Option<Source>) -> Result<(), Error> {
     let mut graph = MemoryGraph::new();
-    graph.add_prefix(vocabs::xsd::PREFIX.to_string(), vocabs::xsd::NAMESPACE.clone());
-    graph.add_prefix(vocabs::obo::PREFIX.to_string(), vocabs::obo::NAMESPACE.clone());
+    graph.add_prefix(xsd::PREFIX.to_string(), xsd::NAMESPACE.clone());
+    graph.add_prefix(obo::PREFIX.to_string(), obo::NAMESPACE.clone());
+    graph.add_prefix(vocabs::PREFIX.to_string(), vocabs::NAMESPACE.clone());
     match source {
         Some(source) => {
             add_triples_from_source(&mut graph, runtime, source)?;

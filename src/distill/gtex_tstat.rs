@@ -1,14 +1,13 @@
-use std::cmp::max;
-use std::collections::BTreeMap;
-use penyu::model::graph::MemoryGraph;
-use penyu::vocabs;
 use crate::data::sources;
 use crate::error::Error;
 use crate::pipe::{LinePipe, NextSummary, Summary};
 use crate::runtime::Runtime;
-use crate::{json, s3};
 use crate::s3::S3Uri;
 use crate::vocabs::EntityType;
+use crate::{json, s3};
+use penyu::model::graph::MemoryGraph;
+use std::cmp::max;
+use std::collections::BTreeMap;
 
 pub(crate) fn report_gtex_tstat(runtime: &Runtime) -> Result<usize, Error> {
     println!("From the GTEx tstat data:");
@@ -102,11 +101,15 @@ pub(crate) fn add_triples_gtex_tstat(graph: &mut MemoryGraph, runtime: &Runtime)
     -> Result<(), Error> {
     let summary = distill_gtex_tstat(runtime)?;
     let biosample_type = EntityType::Biosample.type_iri();
+    let gene_type = EntityType::Gene.type_iri();
+    let over_expressed_in = penyu::vocabs::obo::Ontology::UBERON.create_iri(479);
     for (biosample, gene_tstat_list) in summary.biosample_to_genes.iter() {
+        let biosample_iri = EntityType::Biosample.create_iri(biosample);
+        graph.add(&biosample_iri, penyu::vocabs::rdf::TYPE, biosample_type);
         for gene_tstat in gene_tstat_list {
-            let biosample_iri = EntityType::Biosample.create_iri(biosample);
-            graph.add(biosample_iri, vocabs::rdf::TYPE, biosample_type);
-            todo!()
+            let gene_iri = EntityType::Gene.create_iri(&gene_tstat.gene);
+            graph.add(&gene_iri, penyu::vocabs::rdf::TYPE, gene_type);
+            graph.add(&biosample_iri, &over_expressed_in, &gene_iri);
         }
     }
     Ok(())
