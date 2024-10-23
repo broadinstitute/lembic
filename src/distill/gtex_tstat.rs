@@ -1,12 +1,14 @@
 use std::cmp::max;
 use std::collections::BTreeMap;
 use penyu::model::graph::MemoryGraph;
+use penyu::vocabs;
 use crate::data::sources;
 use crate::error::Error;
 use crate::pipe::{LinePipe, NextSummary, Summary};
 use crate::runtime::Runtime;
 use crate::{json, s3};
 use crate::s3::S3Uri;
+use crate::vocabs::EntityType;
 
 pub(crate) fn report_gtex_tstat(runtime: &Runtime) -> Result<usize, Error> {
     println!("From the GTEx tstat data:");
@@ -96,7 +98,16 @@ impl LinePipe for GtexTstatPipe {
     fn new_summary(&self) -> Self::Summary { GtexTstatSummary::new() }
 }
 
-pub(crate) fn add_triples_gtex_tstat(p0: &mut MemoryGraph, p1: &Runtime) -> Result<(), Error> {
-
-    todo!()
+pub(crate) fn add_triples_gtex_tstat(graph: &mut MemoryGraph, runtime: &Runtime)
+    -> Result<(), Error> {
+    let summary = distill_gtex_tstat(runtime)?;
+    let biosample_type = EntityType::Biosample.type_iri();
+    for (biosample, gene_tstat_list) in summary.biosample_to_genes.iter() {
+        for gene_tstat in gene_tstat_list {
+            let biosample_iri = EntityType::Biosample.create_iri(biosample);
+            graph.add(biosample_iri, vocabs::rdf::TYPE, biosample_type);
+            todo!()
+        }
+    }
+    Ok(())
 }

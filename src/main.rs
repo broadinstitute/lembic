@@ -12,6 +12,7 @@ mod execute;
 mod data;
 mod json;
 mod distill;
+mod vocabs;
 
 fn main() -> Result<(), Error> {
     let runtime = runtime::Runtime::new()?;
