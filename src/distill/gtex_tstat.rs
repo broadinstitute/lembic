@@ -100,11 +100,11 @@ impl LinePipe for GtexTstatPipe {
 pub(crate) fn add_triples_gtex_tstat(graph: &mut MemoryGraph, runtime: &Runtime)
     -> Result<(), Error> {
     let summary = distill_gtex_tstat(runtime)?;
-    let biosample_type = EntityType::Biosample.type_iri();
+    let biosample_type = EntityType::Tissue.type_iri();
     let gene_type = EntityType::Gene.type_iri();
     let over_expressed_in = penyu::vocabs::obo::Ontology::UBERON.create_iri(479);
     for (biosample, gene_tstat_list) in summary.biosample_to_genes.iter() {
-        let biosample_iri = EntityType::Biosample.create_iri(biosample);
+        let biosample_iri = EntityType::Tissue.create_iri(biosample);
         graph.add(&biosample_iri, penyu::vocabs::rdf::TYPE, biosample_type);
         for gene_tstat in gene_tstat_list {
             let gene_iri = EntityType::Gene.create_iri(&gene_tstat.gene);

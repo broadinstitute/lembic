@@ -1,5 +1,6 @@
 use aws_sdk_s3::error::SdkError;
 use std::fmt::{Debug, Display, Formatter};
+use std::num::ParseIntError;
 
 pub struct Error {
     message: String,
@@ -12,6 +13,9 @@ impl Error {
     }
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         self.source.as_ref().map(|e| e.as_ref())
+    }
+    pub fn wrap<E: std::error::Error + 'static>(message: String, error: E) -> Error {
+        Error::new(message, Some(Box::new(error)))
     }
 }
 
@@ -74,5 +78,11 @@ impl From<serde_json::Error> for Error {
 impl From<penyu::error::PenyuError> for Error {
     fn from(error: penyu::error::PenyuError) -> Self {
         Error::new("Penyu error".to_string(), Some(Box::new(error)))
+    }
+}
+
+impl From<ParseIntError> for Error {
+    fn from(error: ParseIntError) -> Self {
+        Error::new("Parse int error".to_string(), Some(Box::new(error)))
     }
 }

@@ -6,6 +6,7 @@ use crate::{json, s3};
 use crate::pipe::{LinePipe, NextSummary, Summary};
 use crate::runtime::Runtime;
 use crate::s3::S3Uri;
+use crate::vocabs::EntityType;
 
 pub(crate) fn report_gtex_sldsc(runtime: &Runtime) -> Result<usize, Error> {
     println!("From the GTEx SLDSC data:");
@@ -96,6 +97,32 @@ impl LinePipe for GtexSldscPipe {
     }
 }
 
-pub(crate) fn add_triples_gtex_sldsc(p0: &mut MemoryGraph, p1: &Runtime) -> Result<(), Error> {
-    todo!()
+pub(crate) fn add_triples_gtex_sldsc(graph: &mut MemoryGraph, runtime: &Runtime)
+    -> Result<(), Error> {
+    let summary = distill_gtex_sldsc(runtime)?;
+    let mondo_type = penyu::vocabs::obo::Ontology::MONDO.create_iri(0);
+    let tissue_type = EntityType::Tissue.type_iri();
+    for MondoIdTissue { mondo_id, tissue } in summary.mondo_id_tissues {
+        let mondo_id = parse_mondo_id(&mondo_id)?;
+        let mondo_iri = penyu::vocabs::obo::Ontology::MONDO.create_iri(mondo_id);
+        graph.add(&mondo_iri, penyu::vocabs::rdf::TYPE, mondo_type);
+        todo!()
+        // graph.add("biosample", "enriched_for", mondo_id);
+        // graph.add("biosample", "tissue", tissue);
+    }
+    Ok(())
+}
+
+fn parse_mondo_id(mondo_id: &str) -> Result<u64, Error> {
+    let mut parts = mondo_id.split(':');
+    match (parts.next(), parts.next(), parts.next()) {
+        (Some("MONDO"), Some(id), None) => {
+            let id =
+                id.parse::<u64>().map_err(|parse_error|
+                    Error::wrap("Invalid MONDO ID".to_string(), parse_error)
+                )?;
+            Ok(id)
+        }
+        _ => Err(Error::from(format!("Invalid MONDO ID: {}", mondo_id)))
+    }
 }

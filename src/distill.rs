@@ -4,11 +4,12 @@ mod four_dn;
 mod ex_rna;
 
 use penyu::model::graph::MemoryGraph;
+use penyu::model::iri::Iri;
 use crate::{data, vocabs};
 use crate::data::Source;
 use crate::error::Error;
 use crate::runtime::Runtime;
-use penyu::vocabs::{obo, xsd};
+use penyu::vocabs::{obo, rdf, xsd, uniprot};
 
 pub(crate) fn report_stats(runtime: &Runtime, source: &Option<Source>) -> Result<(), Error> {
     match source {
@@ -40,9 +41,7 @@ pub(crate) fn report_stats_source(runtime: &Runtime, source: &Source) -> Result<
 
 pub(crate) fn print_turtle(runtime: &Runtime, source: &Option<Source>) -> Result<(), Error> {
     let mut graph = MemoryGraph::new();
-    graph.add_prefix(xsd::PREFIX.to_string(), xsd::NAMESPACE.clone());
-    graph.add_prefix(obo::PREFIX.to_string(), obo::NAMESPACE.clone());
-    graph.add_prefix(vocabs::PREFIX.to_string(), vocabs::NAMESPACE.clone());
+    add_prefixes(&mut graph);
     match source {
         Some(source) => {
             add_triples_from_source(&mut graph, runtime, source)?;
@@ -65,5 +64,17 @@ fn add_triples_from_source(graph: &mut MemoryGraph, runtime: &Runtime, source: &
         Source::FourDnGeneBio => four_dn::add_triples_four_dn(graph, runtime),
         Source::ExRnaGeneCounts => ex_rna::add_triples_ex_rna(graph, runtime)
     }
+}
+
+fn add_prefixes(graph: &mut MemoryGraph) {
+    add_prefix(graph, xsd::PREFIX, xsd::NAMESPACE);
+    add_prefix(graph, obo::PREFIX, obo::NAMESPACE);
+    add_prefix(graph, rdf::PREFIX, rdf::NAMESPACE);
+    add_prefix(graph, vocabs::PREFIX, vocabs::NAMESPACE);
+    add_prefix(graph, uniprot::PREFIX, uniprot::NAMESPACE);
+}
+
+fn add_prefix(graph: &mut MemoryGraph, prefix: &str, namespace: &Iri) {
+    graph.add_prefix(prefix.to_string(), namespace.clone());
 }
 
