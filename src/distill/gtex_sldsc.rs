@@ -100,7 +100,7 @@ impl LinePipe for GtexSldscPipe {
 pub(crate) fn add_triples_gtex_sldsc(graph: &mut MemoryGraph, runtime: &Runtime)
     -> Result<(), Error> {
     let summary = distill_gtex_sldsc(runtime)?;
-    let mondo_type = penyu::vocabs::obo::Ontology::MONDO.create_iri(0);
+    let mondo_type = penyu::vocabs::obo::Ontology::MONDO.create_iri(1);
     let tissue_type = EntityType::Tissue.type_iri();
     for MondoIdTissue { mondo_id, tissue } in summary.mondo_id_tissues {
         let mondo_id = parse_mondo_id(&mondo_id)?;
