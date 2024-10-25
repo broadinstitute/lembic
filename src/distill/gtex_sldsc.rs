@@ -105,10 +105,11 @@ pub(crate) fn add_triples_gtex_sldsc(graph: &mut MemoryGraph, runtime: &Runtime)
     for MondoIdTissue { mondo_id, tissue } in summary.mondo_id_tissues {
         let mondo_id = parse_mondo_id(&mondo_id)?;
         let mondo_iri = penyu::vocabs::obo::Ontology::MONDO.create_iri(mondo_id);
-        graph.add(&mondo_iri, penyu::vocabs::rdf::TYPE, mondo_type);
-        todo!()
-        // graph.add("biosample", "enriched_for", mondo_id);
-        // graph.add("biosample", "tissue", tissue);
+        graph.add(&mondo_iri, penyu::vocabs::rdf::TYPE, &mondo_type);
+        let tissue_iri = EntityType::Tissue.create_iri(&tissue);
+        graph.add(&tissue_iri, penyu::vocabs::rdf::TYPE, tissue_type);
+        let disease_has_location = penyu::vocabs::obo::Ontology::RO.create_iri(4026);
+        graph.add(&mondo_iri, &disease_has_location, &tissue_iri);
     }
     Ok(())
 }
