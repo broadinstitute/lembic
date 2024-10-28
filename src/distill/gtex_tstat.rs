@@ -102,12 +102,12 @@ pub(crate) fn add_triples_gtex_tstat(graph: &mut MemoryGraph, runtime: &Runtime)
     let summary = distill_gtex_tstat(runtime)?;
     let biosample_type = EntityType::Tissue.type_iri();
     let gene_type = EntityType::Gene.type_iri();
-    let over_expressed_in = penyu::vocabs::obo::Ontology::UBERON.create_iri(479);
+    let over_expressed_in = penyu::vocabs::obo::Ontology::RO.create_iri(2245);
     for (biosample, gene_tstat_list) in summary.biosample_to_genes.iter() {
-        let biosample_iri = EntityType::Tissue.create_iri(biosample);
+        let biosample_iri = EntityType::Tissue.create_internal_iri(biosample);
         graph.add(&biosample_iri, penyu::vocabs::rdf::TYPE, biosample_type);
         for gene_tstat in gene_tstat_list {
-            let gene_iri = EntityType::Gene.create_iri(&gene_tstat.gene);
+            let gene_iri = EntityType::Gene.create_internal_iri(&gene_tstat.gene);
             graph.add(&gene_iri, penyu::vocabs::rdf::TYPE, gene_type);
             graph.add(&biosample_iri, &over_expressed_in, &gene_iri);
         }

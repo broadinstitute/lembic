@@ -3,6 +3,7 @@ use penyu::model::graph::MemoryGraph;
 use crate::data::sources;
 use crate::error::Error;
 use crate::{json, s3};
+use crate::distill::util;
 use crate::pipe::{LinePipe, NextSummary, Summary};
 use crate::runtime::Runtime;
 use crate::s3::S3Uri;
@@ -100,30 +101,17 @@ impl LinePipe for GtexSldscPipe {
 pub(crate) fn add_triples_gtex_sldsc(graph: &mut MemoryGraph, runtime: &Runtime)
     -> Result<(), Error> {
     let summary = distill_gtex_sldsc(runtime)?;
-    let mondo_type = penyu::vocabs::obo::Ontology::MONDO.create_iri(1);
+    let disease_type = EntityType::Disease.type_iri();
     let tissue_type = EntityType::Tissue.type_iri();
+    let disease_has_location = penyu::vocabs::obo::Ontology::RO.create_iri(4026);
     for MondoIdTissue { mondo_id, tissue } in summary.mondo_id_tissues {
-        let mondo_id = parse_mondo_id(&mondo_id)?;
+        let mondo_id = util::parse_mondo_id(&mondo_id)?;
         let mondo_iri = penyu::vocabs::obo::Ontology::MONDO.create_iri(mondo_id);
-        graph.add(&mondo_iri, penyu::vocabs::rdf::TYPE, &mondo_type);
-        let tissue_iri = EntityType::Tissue.create_iri(&tissue);
+        graph.add(&mondo_iri, penyu::vocabs::rdf::TYPE, disease_type);
+        let tissue_iri = EntityType::Tissue.create_internal_iri(&tissue);
         graph.add(&tissue_iri, penyu::vocabs::rdf::TYPE, tissue_type);
-        let disease_has_location = penyu::vocabs::obo::Ontology::RO.create_iri(4026);
         graph.add(&mondo_iri, &disease_has_location, &tissue_iri);
     }
     Ok(())
 }
 
-fn parse_mondo_id(mondo_id: &str) -> Result<u64, Error> {
-    let mut parts = mondo_id.split(':');
-    match (parts.next(), parts.next(), parts.next()) {
-        (Some("MONDO"), Some(id), None) => {
-            let id =
-                id.parse::<u64>().map_err(|parse_error|
-                    Error::wrap("Invalid MONDO ID".to_string(), parse_error)
-                )?;
-            Ok(id)
-        }
-        _ => Err(Error::from(format!("Invalid MONDO ID: {}", mondo_id)))
-    }
-}

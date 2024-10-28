@@ -2,6 +2,7 @@ pub(crate) mod gtex_tstat;
 mod gtex_sldsc;
 mod four_dn;
 mod ex_rna;
+mod util;
 
 use penyu::model::graph::MemoryGraph;
 use penyu::model::iri::Iri;
