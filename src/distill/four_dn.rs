@@ -92,6 +92,9 @@ impl LinePipe for FourDnPipe {
     }
 }
 
-pub(crate) fn add_triples_four_dn(p0: &mut MemoryGraph, p1: &Runtime) -> Result<(), Error> {
+pub(crate) fn add_triples_four_dn(graph: &mut MemoryGraph, runtime: &Runtime)
+    -> Result<(), Error> {
+    let summary = distill_four_dn(runtime)?;
+
     todo!()
 }
