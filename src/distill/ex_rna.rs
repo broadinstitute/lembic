@@ -69,6 +69,9 @@ impl LinePipe for ExRnaPipe {
     fn new_summary(&self) -> Self::Summary { ExRnaSummary::new() }
 }
 
-pub(crate) fn add_triples_ex_rna(p0: &mut MemoryGraph, p1: &Runtime) -> Result<(), Error> {
-    todo!()
+pub(crate) fn add_triples_ex_rna(graph: &mut MemoryGraph, runtime: &Runtime)
+    -> Result<(), Error> {
+    let summary = distill_ex_rna(runtime)?;
+    let molecularly_interacts_with = penyu::vocabs::obo::ns::RO.join_str("0002436");
+    Ok(())
 }
