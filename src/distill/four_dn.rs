@@ -7,7 +7,7 @@ use crate::distill::util::parse_mondo_id;
 use crate::pipe::{LinePipe, NextSummary, Summary};
 use crate::runtime::Runtime;
 use crate::s3::S3Uri;
-use crate::vocabs::EntityType;
+use crate::vocabs::Concepts;
 
 pub(crate) fn report_four_dn(runtime: &Runtime) -> Result<usize, Error> {
     println!("From the 4DN gene bio data:");
@@ -97,22 +97,22 @@ impl LinePipe for FourDnPipe {
 pub(crate) fn add_triples_four_dn(graph: &mut MemoryGraph, runtime: &Runtime)
     -> Result<(), Error> {
     let summary = distill_four_dn(runtime)?;
-    let variant_type = EntityType::Variant.type_iri();
-    let gene_type = EntityType::Gene.type_iri();
-    let disease_type = EntityType::Disease.type_iri();
+    let variant_type = Concepts::Variant.concept_iri();
+    let gene_type = Concepts::Gene.concept_iri();
+    let disease_type = Concepts::Disease.concept_iri();
     let indirectly_positively_regulates_activity_of =
         penyu::vocabs::obo::ns::RO.join_str("0011013");
     let contributes_to_frequency_of_condition =
         penyu::vocabs::obo::ns::RO.join_str("0003306");
     for SnpGene { snp, gene } in summary.snp_genes {
-        let snp_iri = EntityType::Variant.create_internal_iri(&snp);
-        let gene_iri = EntityType::Gene.create_internal_iri(&gene);
+        let snp_iri = Concepts::Variant.create_internal_iri(&snp);
+        let gene_iri = Concepts::Gene.create_internal_iri(&gene);
         graph.add(&snp_iri, penyu::vocabs::rdf::TYPE, variant_type);
         graph.add(&gene_iri, penyu::vocabs::rdf::TYPE, gene_type);
         graph.add(&snp_iri, &indirectly_positively_regulates_activity_of, &gene_iri);
     }
     for SnpMondoId { snp, mondo_id } in summary.snp_mondo_ids {
-        let snp_iri = EntityType::Variant.create_internal_iri(&snp);
+        let snp_iri = Concepts::Variant.create_internal_iri(&snp);
         let mondo_id = parse_mondo_id(&mondo_id)?;
         let mondo_iri = penyu::vocabs::obo::Ontology::MONDO.create_iri(mondo_id);
         graph.add(&snp_iri, penyu::vocabs::rdf::TYPE, variant_type);

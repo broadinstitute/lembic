@@ -11,42 +11,43 @@ pub mod ns {
     pub const GENE: &Iri = &NAMESPACE.join_str("gene/");
     pub const DISEASE: &Iri = &NAMESPACE.join_str("disease/");
     pub const VARIANT: &Iri = &NAMESPACE.join_str("variant/");
-    pub const UNIPROT_CORE: &Iri = &Iri::new_str("http://purl.uniprot.org/core/");
 }
 
-pub mod types {
+pub mod concepts {
     use penyu::model::iri::Iri;
-    pub const TISSUE: &Iri = &penyu::vocabs::obo::ns::UBERON.join_str("0000479");
-    pub const GENE: &Iri = &crate::vocabs::ns::UNIPROT_CORE.join_str("Gene");
-    pub const DISEASE: &Iri = &penyu::vocabs::obo::ns::MONDO.join_str("0000001");
-    pub const VARIANT: &Iri = &penyu::vocabs::obo::ns::GENO.join_str("0000476");
+    use penyu::vocabs::umls;
+
+    pub const TISSUE: &Iri = &umls::NAMESPACE.join_str("C0040300");
+    pub const GENE: &Iri = &umls::NAMESPACE.join_str("C0017337");
+    pub const DISEASE: &Iri = &umls::NAMESPACE.join_str("C0012634");
+    pub const VARIANT: &Iri = &umls::NAMESPACE.join_str("C0002085");
 }
 
-pub enum EntityType {
+pub enum Concepts {
     Tissue,
     Gene,
     Disease,
     Variant,
 }
 
-impl EntityType {
+impl Concepts {
     pub fn internal_namespace(&self) -> &'static Iri {
         match self {
-            EntityType::Tissue => ns::TISSUE,
-            EntityType::Gene => ns::GENE,
-            EntityType::Disease => ns::DISEASE,
-            EntityType::Variant => ns::VARIANT,
+            Concepts::Tissue => ns::TISSUE,
+            Concepts::Gene => ns::GENE,
+            Concepts::Disease => ns::DISEASE,
+            Concepts::Variant => ns::VARIANT,
         }
     }
     pub fn create_internal_iri(&self, id: &str) -> Iri {
         self.internal_namespace().join(id.to_string())
     }
-    pub fn type_iri(&self) -> &'static Iri {
+    pub fn concept_iri(&self) -> &'static Iri {
         match self {
-            EntityType::Tissue => types::TISSUE,
-            EntityType::Gene => types::GENE,
-            EntityType::Disease => types::DISEASE,
-            EntityType::Variant => types::VARIANT,
+            Concepts::Tissue => concepts::TISSUE,
+            Concepts::Gene => concepts::GENE,
+            Concepts::Disease => concepts::DISEASE,
+            Concepts::Variant => concepts::VARIANT,
         }
     }
 }

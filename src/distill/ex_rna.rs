@@ -73,5 +73,6 @@ pub(crate) fn add_triples_ex_rna(graph: &mut MemoryGraph, runtime: &Runtime)
     -> Result<(), Error> {
     let summary = distill_ex_rna(runtime)?;
     let molecularly_interacts_with = penyu::vocabs::obo::ns::RO.join_str("0002436");
+    
     Ok(())
 }
