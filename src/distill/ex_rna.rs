@@ -2,7 +2,7 @@ use std::collections::BTreeSet;
 use penyu::model::graph::MemoryGraph;
 use crate::data::sources;
 use crate::error::Error;
-use crate::{json, s3};
+use crate::{json, s3, vocabs};
 use crate::pipe::{LinePipe, NextSummary, Summary};
 use crate::runtime::Runtime;
 use crate::s3::S3Uri;
@@ -73,6 +73,14 @@ pub(crate) fn add_triples_ex_rna(graph: &mut MemoryGraph, runtime: &Runtime)
     -> Result<(), Error> {
     let summary = distill_ex_rna(runtime)?;
     let molecularly_interacts_with = penyu::vocabs::obo::ns::RO.join_str("0002436");
-    
+    let gene_type = vocabs::Concepts::Gene.concept_iri();
+    let protein_type = vocabs::Concepts::Protein.concept_iri();
+    for RbpGene { rbp, gene } in summary.rbp_genes.iter() {
+        let rbp_iri = vocabs::Concepts::Protein.create_internal_iri(rbp);
+        graph.add(&rbp_iri, penyu::vocabs::rdf::TYPE, protein_type);
+        let gene_iri = vocabs::Concepts::Gene.create_internal_iri(gene);
+        graph.add(&gene_iri, penyu::vocabs::rdf::TYPE, gene_type);
+        graph.add(&rbp_iri, &molecularly_interacts_with, &gene_iri);
+    }
     Ok(())
 }

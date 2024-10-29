@@ -11,6 +11,7 @@ pub mod ns {
     pub const GENE: &Iri = &NAMESPACE.join_str("gene/");
     pub const DISEASE: &Iri = &NAMESPACE.join_str("disease/");
     pub const VARIANT: &Iri = &NAMESPACE.join_str("variant/");
+    pub const PROTEIN: &Iri = &NAMESPACE.join_str("protein/");
 }
 
 pub mod concepts {
@@ -21,6 +22,7 @@ pub mod concepts {
     pub const GENE: &Iri = &umls::NAMESPACE.join_str("C0017337");
     pub const DISEASE: &Iri = &umls::NAMESPACE.join_str("C0012634");
     pub const VARIANT: &Iri = &umls::NAMESPACE.join_str("C0002085");
+    pub const PROTEIN: &Iri = &umls::NAMESPACE.join_str("C0033684");
 }
 
 pub enum Concepts {
@@ -28,6 +30,7 @@ pub enum Concepts {
     Gene,
     Disease,
     Variant,
+    Protein
 }
 
 impl Concepts {
@@ -37,6 +40,7 @@ impl Concepts {
             Concepts::Gene => ns::GENE,
             Concepts::Disease => ns::DISEASE,
             Concepts::Variant => ns::VARIANT,
+            Concepts::Protein => ns::PROTEIN,
         }
     }
     pub fn create_internal_iri(&self, id: &str) -> Iri {
@@ -48,6 +52,7 @@ impl Concepts {
             Concepts::Gene => concepts::GENE,
             Concepts::Disease => concepts::DISEASE,
             Concepts::Variant => concepts::VARIANT,
+            Concepts::Protein => concepts::PROTEIN,
         }
     }
 }
