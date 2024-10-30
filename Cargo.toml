@@ -15,4 +15,4 @@ tokio = { version = "1.40.0", features = ["rt-multi-thread"] }
 aws-config = { version = "1.5.8", features = ["behavior-version-latest"] }
 aws-sdk-s3 = "1.54.0"
 serde_json = "1.0.128"
-penyu = { git = "https://github.com/broadinstitute/penyu.git", rev= "b2d4c873644211f84efe68ff1416a81e9dfa365a" }
+penyu = { git = "https://github.com/broadinstitute/penyu.git", rev= "eb81410550c148a0f4de717dfd6a2973ff85cf8f" }

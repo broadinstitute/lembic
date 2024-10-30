@@ -16,13 +16,13 @@ pub mod ns {
 
 pub mod concepts {
     use penyu::model::iri::Iri;
-    use penyu::vocabs::umls;
+    use penyu::vocabs::obo::ns;
 
-    pub const TISSUE: &Iri = &umls::NAMESPACE.join_str("C0040300");
-    pub const GENE: &Iri = &umls::NAMESPACE.join_str("C0017337");
-    pub const DISEASE: &Iri = &umls::NAMESPACE.join_str("C0012634");
-    pub const VARIANT: &Iri = &umls::NAMESPACE.join_str("C0002085");
-    pub const PROTEIN: &Iri = &umls::NAMESPACE.join_str("C0033684");
+    pub const TISSUE: &Iri =  &ns::UBERON.join_str("0000479");
+    pub const GENE: &Iri = &ns::SO.join_str("0000704");
+    pub const DISEASE: &Iri = &ns::MONDO.join_str("0000001");
+    pub const VARIANT: &Iri = &ns::GENO.join_str("0000476");
+    pub const PROTEIN: &Iri = &ns::CHEBI.join_str("36080");
 }
 
 pub enum Concepts {
