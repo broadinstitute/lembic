@@ -10,7 +10,7 @@ use crate::{data, vocabs};
 use crate::data::Source;
 use crate::error::Error;
 use crate::runtime::Runtime;
-use penyu::vocabs::{obo, rdf, xsd, uniprot};
+use penyu::vocabs::{obo, rdf, xsd, uniprot, umls};
 
 pub(crate) fn report_stats(runtime: &Runtime, source: &Option<Source>) -> Result<(), Error> {
     match source {
@@ -73,6 +73,7 @@ fn add_prefixes(graph: &mut MemoryGraph) {
     add_prefix(graph, rdf::PREFIX, rdf::NAMESPACE);
     add_prefix(graph, vocabs::PREFIX, vocabs::NAMESPACE);
     add_prefix(graph, uniprot::PREFIX, uniprot::NAMESPACE);
+    add_prefix(graph, umls::PREFIX, umls::NAMESPACE);
 }
 
 fn add_prefix(graph: &mut MemoryGraph, prefix: &str, namespace: &Iri) {
