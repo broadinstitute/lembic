@@ -1,7 +1,15 @@
 use penyu::model::iri::Iri;
+use penyu::syntax;
 
-pub(crate) const PREFIX: &str = "kp4cd";
 pub(crate) const NAMESPACE: &Iri = &Iri::new_str("https://kp4cd.org/entities/");
+
+pub mod prefixes {
+    pub const TISSUE: &str = "kp4cd-tissue";
+    pub const GENE: &str = "kp4cd-gene";
+    pub const DISEASE: &str = "kp4cd-disease";
+    pub const VARIANT: &str = "kp4cd-variant";
+    pub const PROTEIN: &str = "kp4cd-protein";
+}
 
 pub mod ns {
     use crate::vocabs::NAMESPACE;
@@ -44,7 +52,7 @@ impl Concepts {
         }
     }
     pub fn create_internal_iri(&self, id: &str) -> Iri {
-        self.internal_namespace().join(id.to_string())
+        self.internal_namespace().join(syntax::encode_local_name(&mut id.to_string().chars()))
     }
     pub fn concept_iri(&self) -> &'static Iri {
         match self {

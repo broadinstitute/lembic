@@ -69,10 +69,15 @@ fn add_triples_from_source(graph: &mut MemoryGraph, runtime: &Runtime, source: &
 
 fn add_prefixes(graph: &mut MemoryGraph) {
     add_prefix(graph, xsd::PREFIX, xsd::NAMESPACE);
-    add_prefix(graph, obo::PREFIX, obo::NAMESPACE);
     add_prefix(graph, rdf::PREFIX, rdf::NAMESPACE);
-    add_prefix(graph, vocabs::PREFIX, vocabs::NAMESPACE);
     add_prefix(graph, uniprot::PREFIX, uniprot::NAMESPACE);
+    add_prefix(graph, obo::prefixes::MONDO, obo::ns::MONDO);
+    add_prefix(graph, obo::prefixes::RO, obo::ns::RO);
+    add_prefix(graph, vocabs::prefixes::TISSUE, vocabs::ns::TISSUE);
+    add_prefix(graph, vocabs::prefixes::GENE, vocabs::ns::GENE);
+    add_prefix(graph, vocabs::prefixes::DISEASE, vocabs::ns::DISEASE);
+    add_prefix(graph, vocabs::prefixes::VARIANT, vocabs::ns::VARIANT);
+    add_prefix(graph, vocabs::prefixes::PROTEIN, vocabs::ns::PROTEIN);
 }
 
 fn add_prefix(graph: &mut MemoryGraph, prefix: &str, namespace: &Iri) {
