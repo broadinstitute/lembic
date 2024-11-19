@@ -10,7 +10,10 @@ use crate::{data, vocabs};
 use crate::data::Source;
 use crate::error::Error;
 use crate::runtime::Runtime;
-use penyu::vocabs::{obo, rdf, xsd, uniprot};
+use penyu::vocabs::{obo, rdf, rdfs, uniprot, xsd};
+use crate::mapper::files::OntoFiles;
+use crate::mapper::tissues::TissueMapper;
+use crate::vocabs::Concepts;
 
 pub(crate) fn report_stats(runtime: &Runtime, source: &Option<Source>) -> Result<(), Error> {
     match source {
@@ -45,34 +48,45 @@ pub(crate) fn print_turtle(runtime: &Runtime, source: &Option<Source>) -> Result
     add_prefixes(&mut graph);
     match source {
         Some(source) => {
-            add_triples_from_source(&mut graph, runtime, source)?;
-        }
-        None => {
-            for source in data::ALL_SOURCES {
-                add_triples_from_source(&mut graph, runtime, &source)?;
+            match source {
+                Source::GtexTstat => {
+                    let onto_files = OntoFiles::new()?;
+                    let tissue_mappings = onto_files.get_tissue_mappings()?;
+                    let tissue_mapper = TissueMapper::new(tissue_mappings);
+                    gtex_tstat::add_triples_gtex_tstat(&mut graph, runtime, &tissue_mapper)?
+                },
+                Source::GtexSldsc => {
+                    let onto_files = OntoFiles::new()?;
+                    let tissue_mappings = onto_files.get_tissue_mappings()?;
+                    let tissue_mapper = TissueMapper::new(tissue_mappings);
+                    gtex_sldsc::add_triples_gtex_sldsc(&mut graph, runtime, &tissue_mapper)?
+                },
+                Source::FourDnGeneBio => four_dn::add_triples_four_dn(&mut graph, runtime)?,
+                Source::ExRnaGeneCounts => ex_rna::add_triples_ex_rna(&mut graph, runtime)?
             }
         }
+        None => {
+            let onto_files = OntoFiles::new()?;
+            let tissue_mappings = onto_files.get_tissue_mappings()?;
+            let tissue_mapper = TissueMapper::new(tissue_mappings);
+            gtex_tstat::add_triples_gtex_tstat(&mut graph, runtime, &tissue_mapper)?;
+            gtex_sldsc::add_triples_gtex_sldsc(&mut graph, runtime, &tissue_mapper)?;
+            four_dn::add_triples_four_dn(&mut graph, runtime)?;
+            ex_rna::add_triples_ex_rna(&mut graph, runtime)?;
+        }
     }
-    penyu::writer::write(&mut std::io::stdout(), &graph)?;
+    penyu::write::turtle::write(&mut std::io::stdout(), &graph)?;
     Ok(())
-}
-
-fn add_triples_from_source(graph: &mut MemoryGraph, runtime: &Runtime, source: &Source)
-                           -> Result<(), Error> {
-    match source {
-        Source::GtexTstat => gtex_tstat::add_triples_gtex_tstat(graph, runtime),
-        Source::GtexSldsc => gtex_sldsc::add_triples_gtex_sldsc(graph, runtime),
-        Source::FourDnGeneBio => four_dn::add_triples_four_dn(graph, runtime),
-        Source::ExRnaGeneCounts => ex_rna::add_triples_ex_rna(graph, runtime)
-    }
 }
 
 fn add_prefixes(graph: &mut MemoryGraph) {
     add_prefix(graph, xsd::PREFIX, xsd::NAMESPACE);
     add_prefix(graph, rdf::PREFIX, rdf::NAMESPACE);
+    add_prefix(graph, rdfs::PREFIX, rdfs::NAMESPACE);
     add_prefix(graph, uniprot::PREFIX, uniprot::NAMESPACE);
     add_prefix(graph, obo::prefixes::MONDO, obo::ns::MONDO);
     add_prefix(graph, obo::prefixes::RO, obo::ns::RO);
+    add_prefix(graph, obo::prefixes::SO, obo::ns::SO);
     add_prefix(graph, vocabs::prefixes::TISSUE, vocabs::ns::TISSUE);
     add_prefix(graph, vocabs::prefixes::GENE, vocabs::ns::GENE);
     add_prefix(graph, vocabs::prefixes::DISEASE, vocabs::ns::DISEASE);
@@ -84,3 +98,16 @@ fn add_prefix(graph: &mut MemoryGraph, prefix: &str, namespace: &Iri) {
     graph.add_prefix(prefix.to_string(), namespace.clone());
 }
 
+fn get_tissue_iri(tissue_mapper: &TissueMapper, tissue: &str) -> Iri {
+    let mut tissue = util::clean_up_label(tissue);
+    if tissue == "female gonad" {
+        tissue = "ovary".to_string()
+    }
+    match tissue_mapper.map(&tissue) {
+        Some(iri) => { iri.clone() }
+        None => {
+            eprintln!("No mapping found for tissue: {}", tissue);
+            Concepts::Tissue.create_internal_iri(&tissue)
+        }
+    }
+}

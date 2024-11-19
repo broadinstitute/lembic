@@ -4,10 +4,11 @@ use crate::pipe::{LinePipe, NextSummary, Summary};
 use crate::runtime::Runtime;
 use crate::s3::S3Uri;
 use crate::vocabs::Concepts;
-use crate::{json, s3};
+use crate::{distill, json, s3};
 use penyu::model::graph::MemoryGraph;
 use std::cmp::max;
 use std::collections::BTreeMap;
+use crate::mapper::tissues::TissueMapper;
 
 pub(crate) fn report_gtex_tstat(runtime: &Runtime) -> Result<usize, Error> {
     println!("From the GTEx tstat data:");
@@ -97,14 +98,15 @@ impl LinePipe for GtexTstatPipe {
     fn new_summary(&self) -> Self::Summary { GtexTstatSummary::new() }
 }
 
-pub(crate) fn add_triples_gtex_tstat(graph: &mut MemoryGraph, runtime: &Runtime)
-    -> Result<(), Error> {
+pub(crate) fn add_triples_gtex_tstat(graph: &mut MemoryGraph, runtime: &Runtime,
+                                     tissue_mapper: &TissueMapper)
+                                     -> Result<(), Error> {
     let summary = distill_gtex_tstat(runtime)?;
     let biosample_type = Concepts::Tissue.concept_iri();
     let gene_type = Concepts::Gene.concept_iri();
     let over_expressed_in = penyu::vocabs::obo::Ontology::RO.create_iri(2245);
     for (biosample, gene_tstat_list) in summary.biosample_to_genes.iter() {
-        let biosample_iri = Concepts::Tissue.create_internal_iri(biosample);
+        let biosample_iri = distill::get_tissue_iri(tissue_mapper, biosample);
         graph.add(&biosample_iri, penyu::vocabs::rdf::TYPE, biosample_type);
         for gene_tstat in gene_tstat_list {
             let gene_iri = Concepts::Gene.create_internal_iri(&gene_tstat.gene);
@@ -114,3 +116,4 @@ pub(crate) fn add_triples_gtex_tstat(graph: &mut MemoryGraph, runtime: &Runtime)
     }
     Ok(())
 }
+

@@ -13,6 +13,7 @@ mod data;
 mod json;
 mod distill;
 mod vocabs;
+mod mapper;
 
 fn main() -> Result<(), Error> {
     let runtime = runtime::Runtime::new()?;

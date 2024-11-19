@@ -11,8 +11,9 @@ license = "BSD-3-Clause"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-tokio = { version = "1.40.0", features = ["rt-multi-thread"] }
-aws-config = { version = "1.5.8", features = ["behavior-version-latest"] }
-aws-sdk-s3 = "1.54.0"
-serde_json = "1.0.128"
-penyu = { git = "https://github.com/broadinstitute/penyu.git", rev= "8e77801c344993c792df61008064c949b4a91f2e" }
+tokio = { version = "1.41.1", features = ["rt-multi-thread"] }
+aws-config = { version = "1.5.10", features = ["behavior-version-latest"] }
+aws-sdk-s3 = "1.61.0"
+serde_json = "1.0.133"
+penyu = { git = "https://github.com/broadinstitute/penyu.git", rev= "1b424b8cab5bab4743636ef232457f11091cafa5" }
+home = "0.5.9"
