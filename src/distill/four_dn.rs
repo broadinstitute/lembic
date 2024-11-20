@@ -2,8 +2,9 @@ use std::collections::BTreeSet;
 use penyu::model::graph::MemoryGraph;
 use crate::data::sources;
 use crate::error::Error;
-use crate::{json, s3};
+use crate::{distill, json, s3};
 use crate::distill::util::parse_mondo_id;
+use crate::mapper::hgnc::GeneMapper;
 use crate::pipe::{LinePipe, NextSummary, Summary};
 use crate::runtime::Runtime;
 use crate::s3::S3Uri;
@@ -94,7 +95,8 @@ impl LinePipe for FourDnPipe {
     }
 }
 
-pub(crate) fn add_triples_four_dn(graph: &mut MemoryGraph, runtime: &Runtime)
+pub(crate) fn add_triples_four_dn(graph: &mut MemoryGraph, runtime: &Runtime,
+                                  gene_mapper: &GeneMapper)
     -> Result<(), Error> {
     let summary = distill_four_dn(runtime)?;
     let variant_type = Concepts::Variant.concept_iri();
@@ -106,7 +108,7 @@ pub(crate) fn add_triples_four_dn(graph: &mut MemoryGraph, runtime: &Runtime)
         penyu::vocabs::obo::ns::RO.join_str("0003306");
     for SnpGene { snp, gene } in summary.snp_genes {
         let snp_iri = Concepts::Variant.create_internal_iri(&snp);
-        let gene_iri = Concepts::Gene.create_internal_iri(&gene);
+        let gene_iri = distill::get_gene_iri(gene_mapper, &gene);
         graph.add(&snp_iri, penyu::vocabs::rdf::TYPE, variant_type);
         graph.add(&gene_iri, penyu::vocabs::rdf::TYPE, gene_type);
         graph.add(&snp_iri, &indirectly_positively_regulates_activity_of, &gene_iri);

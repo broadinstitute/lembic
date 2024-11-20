@@ -8,6 +8,7 @@ use crate::{distill, json, s3};
 use penyu::model::graph::MemoryGraph;
 use std::cmp::max;
 use std::collections::BTreeMap;
+use crate::mapper::hgnc::GeneMapper;
 use crate::mapper::tissues::TissueMapper;
 
 pub(crate) fn report_gtex_tstat(runtime: &Runtime) -> Result<usize, Error> {
@@ -99,7 +100,7 @@ impl LinePipe for GtexTstatPipe {
 }
 
 pub(crate) fn add_triples_gtex_tstat(graph: &mut MemoryGraph, runtime: &Runtime,
-                                     tissue_mapper: &TissueMapper)
+                                     gene_mapper: &GeneMapper, tissue_mapper: &TissueMapper)
                                      -> Result<(), Error> {
     let summary = distill_gtex_tstat(runtime)?;
     let biosample_type = Concepts::Tissue.concept_iri();
@@ -109,7 +110,7 @@ pub(crate) fn add_triples_gtex_tstat(graph: &mut MemoryGraph, runtime: &Runtime,
         let biosample_iri = distill::get_tissue_iri(tissue_mapper, biosample);
         graph.add(&biosample_iri, penyu::vocabs::rdf::TYPE, biosample_type);
         for gene_tstat in gene_tstat_list {
-            let gene_iri = Concepts::Gene.create_internal_iri(&gene_tstat.gene);
+            let gene_iri = distill::get_gene_iri(gene_mapper, &gene_tstat.gene);
             graph.add(&gene_iri, penyu::vocabs::rdf::TYPE, gene_type);
             graph.add(&biosample_iri, &over_expressed_in, &gene_iri);
         }

@@ -11,7 +11,9 @@ use crate::data::Source;
 use crate::error::Error;
 use crate::runtime::Runtime;
 use penyu::vocabs::{obo, rdf, rdfs, uniprot, xsd};
-use crate::mapper::files::OntoFiles;
+use crate::mapper::files::VocabFiles;
+use crate::mapper::hgnc;
+use crate::mapper::hgnc::GeneMapper;
 use crate::mapper::tissues::TissueMapper;
 use crate::vocabs::Concepts;
 
@@ -46,33 +48,37 @@ pub(crate) fn report_stats_source(runtime: &Runtime, source: &Source) -> Result<
 pub(crate) fn print_turtle(runtime: &Runtime, source: &Option<Source>) -> Result<(), Error> {
     let mut graph = MemoryGraph::new();
     add_prefixes(&mut graph);
+    let vocab_files = VocabFiles::new()?;
     match source {
         Some(source) => {
             match source {
                 Source::GtexTstat => {
-                    let onto_files = OntoFiles::new()?;
-                    let tissue_mappings = onto_files.get_tissue_mappings()?;
-                    let tissue_mapper = TissueMapper::new(tissue_mappings);
-                    gtex_tstat::add_triples_gtex_tstat(&mut graph, runtime, &tissue_mapper)?
+                    let gene_mapper = hgnc::get_gene_mapper(&vocab_files.hgnc_file())?;
+                    let tissue_mapper = vocab_files.get_tissue_mapper()?;
+                    gtex_tstat::add_triples_gtex_tstat(&mut graph, runtime, &gene_mapper,
+                                                       &tissue_mapper)?
                 },
                 Source::GtexSldsc => {
-                    let onto_files = OntoFiles::new()?;
-                    let tissue_mappings = onto_files.get_tissue_mappings()?;
-                    let tissue_mapper = TissueMapper::new(tissue_mappings);
+                    let tissue_mapper = vocab_files.get_tissue_mapper()?;
                     gtex_sldsc::add_triples_gtex_sldsc(&mut graph, runtime, &tissue_mapper)?
                 },
-                Source::FourDnGeneBio => four_dn::add_triples_four_dn(&mut graph, runtime)?,
-                Source::ExRnaGeneCounts => ex_rna::add_triples_ex_rna(&mut graph, runtime)?
+                Source::FourDnGeneBio => {
+                    let gene_mapper = hgnc::get_gene_mapper(&vocab_files.hgnc_file())?;
+                    four_dn::add_triples_four_dn(&mut graph, runtime, &gene_mapper)?
+                },
+                Source::ExRnaGeneCounts => {
+                    let gene_mapper = hgnc::get_gene_mapper(&vocab_files.hgnc_file())?;
+                    ex_rna::add_triples_ex_rna(&mut graph, runtime, &gene_mapper)?
+                }
             }
         }
         None => {
-            let onto_files = OntoFiles::new()?;
-            let tissue_mappings = onto_files.get_tissue_mappings()?;
-            let tissue_mapper = TissueMapper::new(tissue_mappings);
-            gtex_tstat::add_triples_gtex_tstat(&mut graph, runtime, &tissue_mapper)?;
+            let gene_mapper = hgnc::get_gene_mapper(&vocab_files.hgnc_file())?;
+            let tissue_mapper = vocab_files.get_tissue_mapper()?;
+            gtex_tstat::add_triples_gtex_tstat(&mut graph, runtime, &gene_mapper, &tissue_mapper)?;
             gtex_sldsc::add_triples_gtex_sldsc(&mut graph, runtime, &tissue_mapper)?;
-            four_dn::add_triples_four_dn(&mut graph, runtime)?;
-            ex_rna::add_triples_ex_rna(&mut graph, runtime)?;
+            four_dn::add_triples_four_dn(&mut graph, runtime, &gene_mapper)?;
+            ex_rna::add_triples_ex_rna(&mut graph, runtime, &gene_mapper)?;
         }
     }
     penyu::write::turtle::write(&mut std::io::stdout(), &graph)?;
@@ -108,6 +114,16 @@ fn get_tissue_iri(tissue_mapper: &TissueMapper, tissue: &str) -> Iri {
         None => {
             eprintln!("No mapping found for tissue: {}", tissue);
             Concepts::Tissue.create_internal_iri(&tissue)
+        }
+    }
+}
+
+fn get_gene_iri(gene_mapper: &GeneMapper, gene: &str) -> Iri {
+    match gene_mapper.map(gene) {
+        Some(iri) => { iri }
+        None => {
+            eprintln!("No mapping found for gene: {}", gene);
+            Concepts::Gene.create_internal_iri(gene)
         }
     }
 }
