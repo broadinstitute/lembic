@@ -57,15 +57,15 @@ pub(crate) fn print_turtle(runtime: &Runtime, source: &Option<Source>) -> Result
                     let tissue_mapper = vocab_files.get_tissue_mapper()?;
                     gtex_tstat::add_triples_gtex_tstat(&mut graph, runtime, &gene_mapper,
                                                        &tissue_mapper)?
-                },
+                }
                 Source::GtexSldsc => {
                     let tissue_mapper = vocab_files.get_tissue_mapper()?;
                     gtex_sldsc::add_triples_gtex_sldsc(&mut graph, runtime, &tissue_mapper)?
-                },
+                }
                 Source::FourDnGeneBio => {
                     let gene_mapper = hgnc::get_gene_mapper(&vocab_files.hgnc_file())?;
                     four_dn::add_triples_four_dn(&mut graph, runtime, &gene_mapper)?
-                },
+                }
                 Source::ExRnaGeneCounts => {
                     let gene_mapper = hgnc::get_gene_mapper(&vocab_files.hgnc_file())?;
                     ex_rna::add_triples_ex_rna(&mut graph, runtime, &gene_mapper)?
@@ -122,8 +122,13 @@ fn get_gene_iri(gene_mapper: &GeneMapper, gene: &str) -> Iri {
     match gene_mapper.map(gene) {
         Some(iri) => { iri }
         None => {
-            eprintln!("No mapping found for gene: {}", gene);
-            Concepts::Gene.create_internal_iri(gene)
+            match gene_mapper.map(&gene.to_uppercase()) {
+                None => {
+                    eprintln!("No mapping found for gene: {}", gene);
+                    Concepts::Gene.create_internal_iri(gene)
+                }
+                Some(iri) => { iri }
+            }
         }
     }
 }
