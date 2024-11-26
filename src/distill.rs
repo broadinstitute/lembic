@@ -13,7 +13,7 @@ use crate::runtime::Runtime;
 use penyu::vocabs::{obo, rdf, rdfs, uniprot, xsd};
 use crate::mapper::files::VocabFiles;
 use crate::mapper::hgnc;
-use crate::mapper::hgnc::GeneMapper;
+use crate::mapper::hgnc::{GeneMapper, Mappers};
 use crate::mapper::tissues::TissueMapper;
 use crate::mapper::track::Tracker;
 use crate::vocabs::Concepts;
@@ -54,7 +54,8 @@ pub(crate) fn print_turtle(runtime: &Runtime, source: &Option<Source>) -> Result
         Some(source) => {
             match source {
                 Source::GtexTstat => {
-                    let gene_mapper = hgnc::get_gene_mapper(&vocab_files.hgnc_file())?;
+                    let Mappers { gene_mapper } =
+                        hgnc::get_mappers(&vocab_files.hgnc_file())?;
                     let tissue_mapper = vocab_files.get_tissue_mapper()?;
                     let mut gene_tracker = Tracker::new("genes".to_string());
                     let mut tissue_tracker = Tracker::new("tissues".to_string());
@@ -72,14 +73,16 @@ pub(crate) fn print_turtle(runtime: &Runtime, source: &Option<Source>) -> Result
                     eprintln!("{}", tissue_tracker.report());
                 }
                 Source::FourDnGeneBio => {
-                    let gene_mapper = hgnc::get_gene_mapper(&vocab_files.hgnc_file())?;
+                    let Mappers { gene_mapper } =
+                        hgnc::get_mappers(&vocab_files.hgnc_file())?;
                     let mut gene_tracker = Tracker::new("genes".to_string());
                     four_dn::add_triples_four_dn(&mut graph, runtime, &gene_mapper,
                                                  &mut gene_tracker)?;
                     eprintln!("{}", gene_tracker.report());
                 }
                 Source::ExRnaGeneCounts => {
-                    let gene_mapper = hgnc::get_gene_mapper(&vocab_files.hgnc_file())?;
+                    let Mappers { gene_mapper } =
+                        hgnc::get_mappers(&vocab_files.hgnc_file())?;
                     let mut gene_tracker = Tracker::new("genes".to_string());
                     ex_rna::add_triples_ex_rna(&mut graph, runtime, &gene_mapper,
                                                &mut gene_tracker)?;
@@ -88,7 +91,7 @@ pub(crate) fn print_turtle(runtime: &Runtime, source: &Option<Source>) -> Result
             }
         }
         None => {
-            let gene_mapper = hgnc::get_gene_mapper(&vocab_files.hgnc_file())?;
+            let Mappers { gene_mapper } = hgnc::get_mappers(&vocab_files.hgnc_file())?;
             let tissue_mapper = vocab_files.get_tissue_mapper()?;
             let mut gene_tracker = Tracker::new("genes".to_string());
             let mut tissue_tracker = Tracker::new("tissues".to_string());
