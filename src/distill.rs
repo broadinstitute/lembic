@@ -15,6 +15,7 @@ use crate::mapper::files::VocabFiles;
 use crate::mapper::hgnc;
 use crate::mapper::hgnc::GeneMapper;
 use crate::mapper::tissues::TissueMapper;
+use crate::mapper::track::Tracker;
 use crate::vocabs::Concepts;
 
 pub(crate) fn report_stats(runtime: &Runtime, source: &Option<Source>) -> Result<(), Error> {
@@ -55,30 +56,50 @@ pub(crate) fn print_turtle(runtime: &Runtime, source: &Option<Source>) -> Result
                 Source::GtexTstat => {
                     let gene_mapper = hgnc::get_gene_mapper(&vocab_files.hgnc_file())?;
                     let tissue_mapper = vocab_files.get_tissue_mapper()?;
+                    let mut gene_tracker = Tracker::new("genes".to_string());
+                    let mut tissue_tracker = Tracker::new("tissues".to_string());
                     gtex_tstat::add_triples_gtex_tstat(&mut graph, runtime, &gene_mapper,
-                                                       &tissue_mapper)?
+                                                       &tissue_mapper, &mut gene_tracker,
+                                                       &mut tissue_tracker)?;
+                    eprintln!("{}", gene_tracker.report());
+                    eprintln!("{}", tissue_tracker.report());
                 }
                 Source::GtexSldsc => {
                     let tissue_mapper = vocab_files.get_tissue_mapper()?;
-                    gtex_sldsc::add_triples_gtex_sldsc(&mut graph, runtime, &tissue_mapper)?
+                    let mut tissue_tracker = Tracker::new("tissues".to_string());
+                    gtex_sldsc::add_triples_gtex_sldsc(&mut graph, runtime, &tissue_mapper,
+                                                       &mut tissue_tracker)?;
+                    eprintln!("{}", tissue_tracker.report());
                 }
                 Source::FourDnGeneBio => {
                     let gene_mapper = hgnc::get_gene_mapper(&vocab_files.hgnc_file())?;
-                    four_dn::add_triples_four_dn(&mut graph, runtime, &gene_mapper)?
+                    let mut gene_tracker = Tracker::new("genes".to_string());
+                    four_dn::add_triples_four_dn(&mut graph, runtime, &gene_mapper,
+                                                 &mut gene_tracker)?;
+                    eprintln!("{}", gene_tracker.report());
                 }
                 Source::ExRnaGeneCounts => {
                     let gene_mapper = hgnc::get_gene_mapper(&vocab_files.hgnc_file())?;
-                    ex_rna::add_triples_ex_rna(&mut graph, runtime, &gene_mapper)?
+                    let mut gene_tracker = Tracker::new("genes".to_string());
+                    ex_rna::add_triples_ex_rna(&mut graph, runtime, &gene_mapper,
+                                               &mut gene_tracker)?;
+                    eprintln!("{}", gene_tracker.report());
                 }
             }
         }
         None => {
             let gene_mapper = hgnc::get_gene_mapper(&vocab_files.hgnc_file())?;
             let tissue_mapper = vocab_files.get_tissue_mapper()?;
-            gtex_tstat::add_triples_gtex_tstat(&mut graph, runtime, &gene_mapper, &tissue_mapper)?;
-            gtex_sldsc::add_triples_gtex_sldsc(&mut graph, runtime, &tissue_mapper)?;
-            four_dn::add_triples_four_dn(&mut graph, runtime, &gene_mapper)?;
-            ex_rna::add_triples_ex_rna(&mut graph, runtime, &gene_mapper)?;
+            let mut gene_tracker = Tracker::new("genes".to_string());
+            let mut tissue_tracker = Tracker::new("tissues".to_string());
+            gtex_tstat::add_triples_gtex_tstat(&mut graph, runtime, &gene_mapper, &tissue_mapper,
+                                               &mut gene_tracker, &mut tissue_tracker)?;
+            gtex_sldsc::add_triples_gtex_sldsc(&mut graph, runtime, &tissue_mapper,
+                                               &mut tissue_tracker)?;
+            four_dn::add_triples_four_dn(&mut graph, runtime, &gene_mapper, &mut gene_tracker)?;
+            ex_rna::add_triples_ex_rna(&mut graph, runtime, &gene_mapper, &mut gene_tracker)?;
+            eprintln!("{}", gene_tracker.report());
+            eprintln!("{}", tissue_tracker.report());
         }
     }
     penyu::write::turtle::write(&mut std::io::stdout(), &graph)?;
@@ -93,6 +114,7 @@ fn add_prefixes(graph: &mut MemoryGraph) {
     add_prefix(graph, obo::prefixes::MONDO, obo::ns::MONDO);
     add_prefix(graph, obo::prefixes::RO, obo::ns::RO);
     add_prefix(graph, obo::prefixes::SO, obo::ns::SO);
+    add_prefix(graph, obo::prefixes::GENO, obo::ns::GENO);
     add_prefix(graph, vocabs::prefixes::TISSUE, vocabs::ns::TISSUE);
     add_prefix(graph, vocabs::prefixes::GENE, vocabs::ns::GENE);
     add_prefix(graph, vocabs::prefixes::DISEASE, vocabs::ns::DISEASE);
@@ -104,30 +126,40 @@ fn add_prefix(graph: &mut MemoryGraph, prefix: &str, namespace: &Iri) {
     graph.add_prefix(prefix.to_string(), namespace.clone());
 }
 
-fn get_tissue_iri(tissue_mapper: &TissueMapper, tissue: &str) -> Iri {
+fn get_tissue_iri(tissue_mapper: &TissueMapper, tissue: &str, tracker: &mut Tracker) -> Iri {
     let mut tissue = util::clean_up_label(tissue);
     if tissue == "female gonad" {
         tissue = "ovary".to_string()
     }
     match tissue_mapper.map(&tissue) {
-        Some(iri) => { iri.clone() }
+        Some(iri) => {
+            tracker.report_mapped();
+            iri.clone()
+        }
         None => {
-            eprintln!("No mapping found for tissue: {}", tissue);
-            Concepts::Tissue.create_internal_iri(&tissue)
+            let iri = Concepts::Tissue.create_internal_iri(&tissue);
+            tracker.report_missing(tissue);
+            iri
         }
     }
 }
 
-fn get_gene_iri(gene_mapper: &GeneMapper, gene: &str) -> Iri {
+fn get_gene_iri(gene_mapper: &GeneMapper, gene: &str, tracker: &mut Tracker) -> Iri {
     match gene_mapper.map(gene) {
-        Some(iri) => { iri }
+        Some(iri) => {
+            tracker.report_mapped();
+            iri
+        }
         None => {
             match gene_mapper.map(&gene.to_uppercase()) {
                 None => {
-                    eprintln!("No mapping found for gene: {}", gene);
+                    tracker.report_missing(gene.to_string());
                     Concepts::Gene.create_internal_iri(gene)
                 }
-                Some(iri) => { iri }
+                Some(iri) => {
+                    tracker.report_mapped();
+                    iri
+                }
             }
         }
     }

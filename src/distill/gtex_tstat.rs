@@ -10,6 +10,7 @@ use std::cmp::max;
 use std::collections::BTreeMap;
 use crate::mapper::hgnc::GeneMapper;
 use crate::mapper::tissues::TissueMapper;
+use crate::mapper::track::Tracker;
 
 pub(crate) fn report_gtex_tstat(runtime: &Runtime) -> Result<usize, Error> {
     println!("From the GTEx tstat data:");
@@ -100,17 +101,18 @@ impl LinePipe for GtexTstatPipe {
 }
 
 pub(crate) fn add_triples_gtex_tstat(graph: &mut MemoryGraph, runtime: &Runtime,
-                                     gene_mapper: &GeneMapper, tissue_mapper: &TissueMapper)
+                                     gene_mapper: &GeneMapper, tissue_mapper: &TissueMapper,
+                                     gene_tracker: &mut Tracker, tissue_tracker: &mut Tracker)
                                      -> Result<(), Error> {
     let summary = distill_gtex_tstat(runtime)?;
     let biosample_type = Concepts::Tissue.concept_iri();
     let gene_type = Concepts::Gene.concept_iri();
     let over_expressed_in = penyu::vocabs::obo::Ontology::RO.create_iri(2245);
     for (biosample, gene_tstat_list) in summary.biosample_to_genes.iter() {
-        let biosample_iri = distill::get_tissue_iri(tissue_mapper, biosample);
+        let biosample_iri = distill::get_tissue_iri(tissue_mapper, biosample, tissue_tracker);
         graph.add(&biosample_iri, penyu::vocabs::rdf::TYPE, biosample_type);
         for gene_tstat in gene_tstat_list {
-            let gene_iri = distill::get_gene_iri(gene_mapper, &gene_tstat.gene);
+            let gene_iri = distill::get_gene_iri(gene_mapper, &gene_tstat.gene, gene_tracker);
             graph.add(&gene_iri, penyu::vocabs::rdf::TYPE, gene_type);
             graph.add(&biosample_iri, &over_expressed_in, &gene_iri);
         }
