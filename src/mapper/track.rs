@@ -26,7 +26,7 @@ impl Tracker {
     pub(crate) fn report(&self) -> String {
         let mut report =
             format!("{}: {} hits, {} misses ({}%), due to {} missing", self.name, self.n_hit,
-                    self.n_hit, self.n_miss * 100 / (self.n_hit + self.n_miss),
+                    self.n_miss, self.n_miss * 100 / (self.n_hit + self.n_miss),
                     self.missing.len());
         let mut missing = self.missing.iter();
         if let Some(label) = missing.next() {

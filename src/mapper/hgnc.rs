@@ -6,9 +6,14 @@ use crate::error::Error;
 
 pub(crate) struct Mappers {
     pub(crate) gene_mapper: GeneMapper,
+    pub(crate) protein_mapper: ProteinMapper,
 }
 pub(crate) struct GeneMapper {
     mappings: BTreeMap<String, u32>,
+}
+
+pub(crate) struct ProteinMapper {
+    mappings: BTreeMap<String, String>,
 }
 
 impl GeneMapper {
@@ -20,11 +25,21 @@ impl GeneMapper {
     }
 }
 
+impl ProteinMapper {
+    pub(crate) fn new(mappings: BTreeMap<String, String>) -> ProteinMapper {
+        ProteinMapper { mappings }
+    }
+    pub(crate) fn map(&self, symbol: &str) -> Option<Iri> {
+        self.mappings.get(symbol)
+            .map(|protein| penyu::vocabs::uniprot::create_iri(protein))
+    }
+}
+
 pub(crate) fn get_mappers(file: &PathBuf) -> Result<Mappers, Error> {
     let mut symbols: BTreeMap<String, u32> = BTreeMap::new();
     let mut aliases: BTreeMap<String, u32> = BTreeMap::new();
     let mut previous: BTreeMap<String, u32> = BTreeMap::new();
-    let mut proteins: BTreeMap<u32, String> = BTreeMap::new();
+    let mut genes_to_proteins: BTreeMap<u32, String> = BTreeMap::new();
     let reader = BufReader::new(std::fs::File::open(file)?);
     let mut lines = reader.lines();
     let _ = lines.next(); // Skip header
@@ -42,7 +57,8 @@ pub(crate) fn get_mappers(file: &PathBuf) -> Result<Mappers, Error> {
             )?;
         let alias = extract_symbols(parts.nth(6));
         let prev_symbols = extract_symbols(parts.nth(1));
-        let uniprot_ids = extract_symbols(parts.nth(14)).first();
+        let extracted_uniprot_ids = extract_symbols(parts.nth(14));
+        let uniprot_id = extracted_uniprot_ids.first();
         symbols.insert(symbol, hgnc_num);
         for symbol in alias {
             aliases.insert(symbol, hgnc_num);
@@ -50,14 +66,18 @@ pub(crate) fn get_mappers(file: &PathBuf) -> Result<Mappers, Error> {
         for symbol in prev_symbols {
             previous.insert(symbol, hgnc_num);
         }
-        if let Some(uniprot_id) = uniprot_ids {
-            proteins.insert(hgnc_num, uniprot_id.to_string());
+        if let Some(uniprot_id) = uniprot_id {
+            genes_to_proteins.insert(hgnc_num, uniprot_id.to_string());
         }
     }
     previous.append(&mut aliases);
     previous.append(&mut symbols);
     let gene_mappings = previous;
-    Ok(Mappers { gene_mapper: GeneMapper::new(gene_mappings) })
+    let protein_mappings =
+        crate_protein_mappings(&gene_mappings, &genes_to_proteins);
+    let gene_mapper = GeneMapper::new(gene_mappings);
+    let protein_mapper = ProteinMapper::new(protein_mappings);
+    Ok(Mappers { gene_mapper, protein_mapper })
 }
 
 fn extract_symbols(string: Option<&str>) -> Vec<String> {
@@ -65,4 +85,15 @@ fn extract_symbols(string: Option<&str>) -> Vec<String> {
         s.replace("\"", "")
             .split('|').map(|s| s.to_string()).collect::<Vec<String>>()
     }).unwrap_or_default()
+}
+
+fn crate_protein_mappings(gene_mappings: &BTreeMap<String, u32>,
+                          genes_to_proteins: &BTreeMap<u32, String>) -> BTreeMap<String, String> {
+    let mut protein_mappings: BTreeMap<String, String> = BTreeMap::new();
+    for (gene_symbol, hgnc_num) in gene_mappings {
+        if let Some(protein_id) = genes_to_proteins.get(hgnc_num) {
+            protein_mappings.insert(gene_symbol.clone(), protein_id.clone());
+        }
+    }
+    protein_mappings
 }

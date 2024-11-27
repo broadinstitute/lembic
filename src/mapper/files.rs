@@ -30,7 +30,7 @@ impl VocabFiles {
     pub(crate) fn clo_file(&self) -> PathBuf { self.ontos_dir.join("clo.owl") }
 
     pub(crate) fn hgnc_file(&self) -> PathBuf {
-        self.lembic_dir.join("hgnc").join("non_alt_loci_set.txt")
+        self.lembic_dir.join("hgnc").join("hgnc_complete_set.txt")
     }
     pub(crate) fn get_tissue_mapper(&self) -> Result<TissueMapper, Error> {
         let mut mappings: BTreeMap<String, Iri> = BTreeMap::new();

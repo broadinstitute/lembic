@@ -3,7 +3,7 @@ use penyu::model::graph::MemoryGraph;
 use crate::data::sources;
 use crate::error::Error;
 use crate::{distill, json, s3, vocabs};
-use crate::mapper::hgnc::GeneMapper;
+use crate::mapper::hgnc::{GeneMapper, ProteinMapper};
 use crate::mapper::track::Tracker;
 use crate::pipe::{LinePipe, NextSummary, Summary};
 use crate::runtime::Runtime;
@@ -72,14 +72,15 @@ impl LinePipe for ExRnaPipe {
 }
 
 pub(crate) fn add_triples_ex_rna(graph: &mut MemoryGraph, runtime: &Runtime,
-                                 gene_mapper: &GeneMapper, gene_tracker: &mut Tracker)
+                                 gene_mapper: &GeneMapper, protein_mapper: &ProteinMapper,
+                                 gene_tracker: &mut Tracker, protein_tracker: &mut Tracker)
     -> Result<(), Error> {
     let summary = distill_ex_rna(runtime)?;
     let molecularly_interacts_with = penyu::vocabs::obo::ns::RO.join_str("0002436");
     let gene_type = vocabs::Concepts::Gene.concept_iri();
     let protein_type = vocabs::Concepts::Protein.concept_iri();
     for RbpGene { rbp, gene } in summary.rbp_genes.iter() {
-        let rbp_iri = vocabs::Concepts::Protein.create_internal_iri(rbp);
+        let rbp_iri = distill::get_protein_uri(protein_mapper, rbp, protein_tracker);
         graph.add(&rbp_iri, penyu::vocabs::rdf::TYPE, protein_type);
         let gene_iri = distill::get_gene_iri(gene_mapper, gene, gene_tracker);
         graph.add(&gene_iri, penyu::vocabs::rdf::TYPE, gene_type);

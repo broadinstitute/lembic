@@ -13,7 +13,7 @@ use crate::runtime::Runtime;
 use penyu::vocabs::{obo, rdf, rdfs, uniprot, xsd};
 use crate::mapper::files::VocabFiles;
 use crate::mapper::hgnc;
-use crate::mapper::hgnc::{GeneMapper, Mappers};
+use crate::mapper::hgnc::{GeneMapper, Mappers, ProteinMapper};
 use crate::mapper::tissues::TissueMapper;
 use crate::mapper::track::Tracker;
 use crate::vocabs::Concepts;
@@ -54,7 +54,7 @@ pub(crate) fn print_turtle(runtime: &Runtime, source: &Option<Source>) -> Result
         Some(source) => {
             match source {
                 Source::GtexTstat => {
-                    let Mappers { gene_mapper } =
+                    let Mappers { gene_mapper, .. } =
                         hgnc::get_mappers(&vocab_files.hgnc_file())?;
                     let tissue_mapper = vocab_files.get_tissue_mapper()?;
                     let mut gene_tracker = Tracker::new("genes".to_string());
@@ -73,7 +73,7 @@ pub(crate) fn print_turtle(runtime: &Runtime, source: &Option<Source>) -> Result
                     eprintln!("{}", tissue_tracker.report());
                 }
                 Source::FourDnGeneBio => {
-                    let Mappers { gene_mapper } =
+                    let Mappers { gene_mapper, .. } =
                         hgnc::get_mappers(&vocab_files.hgnc_file())?;
                     let mut gene_tracker = Tracker::new("genes".to_string());
                     four_dn::add_triples_four_dn(&mut graph, runtime, &gene_mapper,
@@ -81,28 +81,34 @@ pub(crate) fn print_turtle(runtime: &Runtime, source: &Option<Source>) -> Result
                     eprintln!("{}", gene_tracker.report());
                 }
                 Source::ExRnaGeneCounts => {
-                    let Mappers { gene_mapper } =
+                    let Mappers { gene_mapper, protein_mapper } =
                         hgnc::get_mappers(&vocab_files.hgnc_file())?;
                     let mut gene_tracker = Tracker::new("genes".to_string());
-                    ex_rna::add_triples_ex_rna(&mut graph, runtime, &gene_mapper,
-                                               &mut gene_tracker)?;
+                    let mut protein_tracker = Tracker::new("proteins".to_string());
+                    ex_rna::add_triples_ex_rna(&mut graph, runtime, &gene_mapper, &protein_mapper,
+                                               &mut gene_tracker, &mut protein_tracker)?;
                     eprintln!("{}", gene_tracker.report());
+                    eprintln!("{}", protein_tracker.report());
                 }
             }
         }
         None => {
-            let Mappers { gene_mapper } = hgnc::get_mappers(&vocab_files.hgnc_file())?;
+            let Mappers { gene_mapper, protein_mapper } =
+                hgnc::get_mappers(&vocab_files.hgnc_file())?;
             let tissue_mapper = vocab_files.get_tissue_mapper()?;
             let mut gene_tracker = Tracker::new("genes".to_string());
             let mut tissue_tracker = Tracker::new("tissues".to_string());
+            let mut protein_tracker = Tracker::new("proteins".to_string());
             gtex_tstat::add_triples_gtex_tstat(&mut graph, runtime, &gene_mapper, &tissue_mapper,
                                                &mut gene_tracker, &mut tissue_tracker)?;
             gtex_sldsc::add_triples_gtex_sldsc(&mut graph, runtime, &tissue_mapper,
                                                &mut tissue_tracker)?;
             four_dn::add_triples_four_dn(&mut graph, runtime, &gene_mapper, &mut gene_tracker)?;
-            ex_rna::add_triples_ex_rna(&mut graph, runtime, &gene_mapper, &mut gene_tracker)?;
+            ex_rna::add_triples_ex_rna(&mut graph, runtime, &gene_mapper, &protein_mapper,
+                                       &mut gene_tracker, &mut protein_tracker)?;
             eprintln!("{}", gene_tracker.report());
             eprintln!("{}", tissue_tracker.report());
+            eprintln!("{}", protein_tracker.report());
         }
     }
     penyu::write::turtle::write(&mut std::io::stdout(), &graph)?;
@@ -164,6 +170,19 @@ fn get_gene_iri(gene_mapper: &GeneMapper, gene: &str, tracker: &mut Tracker) -> 
                     iri
                 }
             }
+        }
+    }
+}
+
+fn get_protein_uri(protein_mapper: &ProteinMapper, protein: &str, tracker: &mut Tracker) -> Iri {
+    match protein_mapper.map(protein) {
+        Some(iri) => {
+            tracker.report_mapped();
+            iri
+        }
+        None => {
+            tracker.report_missing(protein.to_string());
+            Concepts::Protein.create_internal_iri(protein)
         }
     }
 }
