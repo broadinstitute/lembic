@@ -4,19 +4,20 @@ mod four_dn;
 mod ex_rna;
 mod util;
 
-use penyu::model::graph::MemoryGraph;
-use penyu::model::iri::Iri;
-use crate::{data, vocabs};
 use crate::data::Source;
 use crate::error::Error;
-use crate::runtime::Runtime;
-use penyu::vocabs::{obo, rdf, rdfs, uniprot, xsd};
 use crate::mapper::files::VocabFiles;
 use crate::mapper::hgnc;
 use crate::mapper::hgnc::{GeneMapper, Mappers, ProteinMapper};
 use crate::mapper::tissues::TissueMapper;
 use crate::mapper::track::Tracker;
+use crate::runtime::Runtime;
 use crate::vocabs::Concepts;
+use crate::{data, vocabs};
+use penyu::model::graph::MemoryGraph;
+use penyu::model::iri::Iri;
+use penyu::vocabs::{obo, rdf, rdfs, uniprot, xsd};
+use std::path::Path;
 
 pub(crate) fn report_stats(runtime: &Runtime, source: &Option<Source>) -> Result<(), Error> {
     match source {
@@ -113,6 +114,11 @@ pub(crate) fn print_turtle(runtime: &Runtime, source: &Option<Source>) -> Result
     }
     penyu::write::turtle::write(&mut std::io::stdout(), &graph)?;
     Ok(())
+}
+
+pub(crate) fn export_ubkg(runtime: &Runtime, path: &Path, source: &Option<Source>)
+    -> Result<(), Error> {
+    todo!()
 }
 
 fn add_prefixes(graph: &mut MemoryGraph) {

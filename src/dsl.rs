@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use crate::data::{get_data_location, Source};
 use crate::error::Error;
 use crate::s3::S3Uri;
@@ -10,10 +11,11 @@ mod commands {
     pub(crate) const LIST_SOURCES: &str = "list-sources";
     pub(crate) const REPORT_STATS: &str = "report-stats";
     pub(crate) const PRINT_TURTLE: &str = "print-turtle";
-    pub(crate) const ALL: [&str; 7] =
+    pub(crate) const EXPORT_UBKG: &str = "export-ubkg";
+    pub(crate) const ALL: [&str; 8] =
         [
             LIST_BUCKETS, PRINT_LINES, PRINT_SCHEMA, PRINT_TABULAR, LIST_SOURCES, REPORT_STATS,
-            PRINT_TURTLE
+            PRINT_TURTLE, EXPORT_UBKG
         ];
 }
 pub(crate) enum Command {
@@ -24,6 +26,7 @@ pub(crate) enum Command {
     ListSources,
     ReportStats(Option<Source>),
     PrintTurtle(Option<Source>),
+    ExportUbkg(PathBuf, Option<Source>),
 }
 
 pub(crate) fn get_command_from_parts<I>(mut parts: I) -> Result<Command, Error>
@@ -54,6 +57,11 @@ where I: Iterator<Item=String> {
                     let source = parse_source_argument(parts.next())?;
                     Ok(Command::PrintTurtle(source))
                 },
+                commands::EXPORT_UBKG => {
+                    let path = parse_path(parts.next())?;
+                    let source = parse_source_argument(parts.next())?;
+                    Ok(Command::ExportUbkg(path, source))
+                },
                 _ => Err(Error::from(
                     format!("Unknown command '{}'. {}", arg, known_commands_are())
                 ))
@@ -77,6 +85,13 @@ fn parse_source_argument(arg: Option<String>) -> Result<Option<Source>, Error> {
     match arg {
         Some(name) => { Ok(Some(Source::try_from(name.as_str())?)) },
         None => Ok(None)
+    }
+}
+
+fn parse_path(arg: Option<String>) -> Result<PathBuf, Error> {
+    match arg {
+        Some(name) => { Ok(PathBuf::from(name)) },
+        None => Err(Error::from("No path provided."))
     }
 }
 
