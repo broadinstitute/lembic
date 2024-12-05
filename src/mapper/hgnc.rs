@@ -1,8 +1,8 @@
+use crate::error::Error;
+use penyu::model::iri::Iri;
 use std::collections::BTreeMap;
 use std::io::{BufRead, BufReader};
-use std::path::PathBuf;
-use penyu::model::iri::Iri;
-use crate::error::Error;
+use std::path::Path;
 
 pub(crate) struct Mappers {
     pub(crate) gene_mapper: GeneMapper,
@@ -35,7 +35,7 @@ impl ProteinMapper {
     }
 }
 
-pub(crate) fn get_mappers(file: &PathBuf) -> Result<Mappers, Error> {
+pub(crate) fn get_mappers(file: &Path) -> Result<Mappers, Error> {
     let mut symbols: BTreeMap<String, u32> = BTreeMap::new();
     let mut aliases: BTreeMap<String, u32> = BTreeMap::new();
     let mut previous: BTreeMap<String, u32> = BTreeMap::new();

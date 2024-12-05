@@ -17,6 +17,19 @@ impl Error {
     pub fn wrap<E: std::error::Error + 'static>(message: String, error: E) -> Error {
         Error::new(message, Some(Box::new(error)))
     }
+    pub fn approximate_clone(&self) -> Error {
+        let message = self.message.clone();
+        let source =
+            self.source.as_ref().map(|e| sorta_clone(e.as_ref()));
+        Error::new(message, source)
+    }
+}
+
+fn sorta_clone(error: &dyn std::error::Error) -> Box<dyn std::error::Error> {
+    let message = error.to_string();
+    let source =
+        error.source().map(|e| sorta_clone(e));
+    Box::new(Error::new(message, source))
 }
 
 impl Display for Error {

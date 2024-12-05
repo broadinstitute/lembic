@@ -2,6 +2,7 @@ use crate::error::Error;
 use crate::s3::S3Uri;
 use std::fmt::{Display, Formatter};
 
+#[derive(Copy, Clone)]
 pub(crate) enum Source {
     GtexTstat,
     GtexSldsc,

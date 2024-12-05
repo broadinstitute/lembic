@@ -1,4 +1,5 @@
 use std::path::PathBuf;
+use crate::data;
 use crate::data::{get_data_location, Source};
 use crate::error::Error;
 use crate::s3::S3Uri;
@@ -25,7 +26,7 @@ pub(crate) enum Command {
     PrintTabular(S3Uri, Vec<String>),
     ListSources,
     ReportStats(Option<Source>),
-    PrintTurtle(Option<Source>),
+    PrintTurtle(Vec<Source>),
     ExportUbkg(PathBuf, Option<Source>),
 }
 
@@ -55,7 +56,11 @@ where I: Iterator<Item=String> {
                 },
                 commands::PRINT_TURTLE => {
                     let source = parse_source_argument(parts.next())?;
-                    Ok(Command::PrintTurtle(source))
+                    let sources = match source {
+                        Some(source) => vec![source],
+                        None => data::ALL_SOURCES.to_vec()
+                    };
+                    Ok(Command::PrintTurtle(sources))
                 },
                 commands::EXPORT_UBKG => {
                     let path = parse_path(parts.next())?;

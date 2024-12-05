@@ -16,12 +16,15 @@ impl Tracker {
             missing: BTreeSet::new()
         }
     }
-    pub(crate) fn report_mapped(&mut self) {
+    pub(crate) fn note_mapped(&mut self) {
         self.n_hit += 1;
     }
-    pub(crate) fn report_missing(&mut self, label: String) {
+    pub(crate) fn note_missing(&mut self, label: String) {
         self.n_miss += 1;
         self.missing.insert(label);
+    }
+    pub(crate) fn any_notes(&self) -> bool {
+        self.n_miss > 0 || self.n_hit > 0
     }
     pub(crate) fn report(&self) -> String {
         let mut report =
