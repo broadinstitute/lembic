@@ -15,7 +15,7 @@ pub(crate) fn execute(runtime: &Runtime, command: &Command) -> Result<(), Error>
             data::list_sources();
             Ok(())
         }
-        Command::ReportStats(source) => { distill::report_stats(runtime, source) }
+        Command::ReportStats(sources) => { distill::report_stats(runtime, sources) }
         Command::PrintTurtle(sources) => { distill::print_turtle(runtime, sources) }
         Command::ExportUbkg(path, source) => {
             distill::export_ubkg(runtime, path, source)
