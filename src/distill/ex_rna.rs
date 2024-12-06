@@ -1,13 +1,13 @@
-use std::collections::BTreeSet;
-use penyu::model::graph::MemoryGraph;
 use crate::data::sources;
+use crate::distill::rdf::RdfWriter;
 use crate::error::Error;
-use crate::{distill, json, s3, vocabs};
 use crate::mapper::hgnc::{GeneMapper, ProteinMapper};
 use crate::mapper::track::Tracker;
 use crate::pipe::{LinePipe, NextSummary, Summary};
 use crate::runtime::Runtime;
 use crate::s3::S3Uri;
+use crate::{distill, json, s3, vocabs};
+use std::collections::BTreeSet;
 
 pub(crate) fn report_ex_rna(runtime: &Runtime) -> Result<usize, Error> {
     println!("From the exRNA gene counts data:");
@@ -71,10 +71,11 @@ impl LinePipe for ExRnaPipe {
     fn new_summary(&self) -> Self::Summary { ExRnaSummary::new() }
 }
 
-pub(crate) fn add_triples_ex_rna(graph: &mut MemoryGraph, runtime: &Runtime,
+pub(crate) fn add_triples_ex_rna(rdf_writer: &mut RdfWriter, runtime: &Runtime,
                                  gene_mapper: &GeneMapper, protein_mapper: &ProteinMapper,
                                  gene_tracker: &mut Tracker, protein_tracker: &mut Tracker)
     -> Result<(), Error> {
+    let graph = rdf_writer.graph();
     let summary = distill_ex_rna(runtime)?;
     let molecularly_interacts_with = penyu::vocabs::obo::ns::RO.join_str("0002436");
     let gene_type = vocabs::Concepts::Gene.concept_iri();

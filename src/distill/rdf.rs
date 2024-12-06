@@ -1,4 +1,3 @@
-use std::io::Write;
 use penyu::model::graph::MemoryGraph;
 use penyu::model::iri::Iri;
 use penyu::vocabs::{obo, rdf, rdfs, uniprot, xsd};
@@ -18,8 +17,8 @@ impl RdfWriter {
     pub(crate) fn graph(&mut self) -> &mut MemoryGraph {
         &mut self.graph
     }
-    pub(crate) fn write<W: Write>(&self, write: &mut W) -> Result<(), Error> {
-        penyu::write::turtle::write(write, &self.graph)?;
+    pub(crate) fn write(&self) -> Result<(), Error> {
+        penyu::write::turtle::write(&mut std::io::stdout(), &self.graph)?;
         Ok(())
     }
 }

@@ -1,15 +1,15 @@
-use std::collections::BTreeSet;
-use penyu::model::graph::MemoryGraph;
 use crate::data::sources;
-use crate::error::Error;
-use crate::{distill, json, s3};
+use crate::distill::rdf::RdfWriter;
 use crate::distill::util;
+use crate::error::Error;
 use crate::mapper::tissues::TissueMapper;
 use crate::mapper::track::Tracker;
 use crate::pipe::{LinePipe, NextSummary, Summary};
 use crate::runtime::Runtime;
 use crate::s3::S3Uri;
 use crate::vocabs::Concepts;
+use crate::{distill, json, s3};
+use std::collections::BTreeSet;
 
 pub(crate) fn report_gtex_sldsc(runtime: &Runtime) -> Result<usize, Error> {
     println!("From the GTEx SLDSC data:");
@@ -100,9 +100,10 @@ impl LinePipe for GtexSldscPipe {
     }
 }
 
-pub(crate) fn add_triples_gtex_sldsc(graph: &mut MemoryGraph, runtime: &Runtime,
+pub(crate) fn add_triples_gtex_sldsc(rdf_writer: &mut RdfWriter, runtime: &Runtime,
                                      tissue_mapper: &TissueMapper, tissue_tracker: &mut Tracker)
     -> Result<(), Error> {
+    let graph = rdf_writer.graph();
     let summary = distill_gtex_sldsc(runtime)?;
     let disease_type = Concepts::Disease.concept_iri();
     let tissue_type = Concepts::Tissue.concept_iri();

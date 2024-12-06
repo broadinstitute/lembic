@@ -1,15 +1,15 @@
-use std::collections::BTreeSet;
-use penyu::model::graph::MemoryGraph;
 use crate::data::sources;
-use crate::error::Error;
-use crate::{distill, json, s3};
+use crate::distill::rdf::RdfWriter;
 use crate::distill::util::parse_mondo_id;
+use crate::error::Error;
 use crate::mapper::hgnc::GeneMapper;
 use crate::mapper::track::Tracker;
 use crate::pipe::{LinePipe, NextSummary, Summary};
 use crate::runtime::Runtime;
 use crate::s3::S3Uri;
 use crate::vocabs::Concepts;
+use crate::{distill, json, s3};
+use std::collections::BTreeSet;
 
 pub(crate) fn report_four_dn(runtime: &Runtime) -> Result<usize, Error> {
     println!("From the 4DN gene bio data:");
@@ -96,9 +96,10 @@ impl LinePipe for FourDnPipe {
     }
 }
 
-pub(crate) fn add_triples_four_dn(graph: &mut MemoryGraph, runtime: &Runtime,
+pub(crate) fn add_triples_four_dn(rdf_writer: &mut RdfWriter, runtime: &Runtime,
                                   gene_mapper: &GeneMapper, gene_tracker: &mut Tracker)
     -> Result<(), Error> {
+    let graph = rdf_writer.graph();
     let summary = distill_four_dn(runtime)?;
     let variant_type = Concepts::Variant.concept_iri();
     let gene_type = Concepts::Gene.concept_iri();

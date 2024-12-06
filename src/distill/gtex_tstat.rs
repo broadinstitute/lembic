@@ -1,16 +1,16 @@
 use crate::data::sources;
+use crate::distill::rdf::RdfWriter;
 use crate::error::Error;
+use crate::mapper::hgnc::GeneMapper;
+use crate::mapper::tissues::TissueMapper;
+use crate::mapper::track::Tracker;
 use crate::pipe::{LinePipe, NextSummary, Summary};
 use crate::runtime::Runtime;
 use crate::s3::S3Uri;
 use crate::vocabs::Concepts;
 use crate::{distill, json, s3};
-use penyu::model::graph::MemoryGraph;
 use std::cmp::max;
 use std::collections::BTreeMap;
-use crate::mapper::hgnc::GeneMapper;
-use crate::mapper::tissues::TissueMapper;
-use crate::mapper::track::Tracker;
 
 pub(crate) fn report_gtex_tstat(runtime: &Runtime) -> Result<usize, Error> {
     println!("From the GTEx tstat data:");
@@ -100,10 +100,11 @@ impl LinePipe for GtexTstatPipe {
     fn new_summary(&self) -> Self::Summary { GtexTstatSummary::new() }
 }
 
-pub(crate) fn add_triples_gtex_tstat(graph: &mut MemoryGraph, runtime: &Runtime,
+pub(crate) fn add_triples_gtex_tstat(writer: &mut RdfWriter, runtime: &Runtime,
                                      gene_mapper: &GeneMapper, tissue_mapper: &TissueMapper,
                                      gene_tracker: &mut Tracker, tissue_tracker: &mut Tracker)
                                      -> Result<(), Error> {
+    let graph = writer.graph();
     let summary = distill_gtex_tstat(runtime)?;
     let biosample_type = Concepts::Tissue.concept_iri();
     let gene_type = Concepts::Gene.concept_iri();
