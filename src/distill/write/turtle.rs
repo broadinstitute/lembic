@@ -1,23 +1,32 @@
 use penyu::model::graph::MemoryGraph;
 use penyu::model::iri::Iri;
+use penyu::model::literal::Literal;
 use penyu::vocabs::{obo, rdf, rdfs, uniprot, xsd};
+use crate::distill::write::GraphWriter;
 use crate::error::Error;
 use crate::vocabs;
 
-pub(crate) struct RdfWriter {
+pub(crate) struct TurtleWriter {
     pub(crate) graph: MemoryGraph
 }
 
-impl RdfWriter {
-    pub(crate) fn new() -> RdfWriter {
+impl TurtleWriter {
+    pub(crate) fn new() -> TurtleWriter {
         let mut graph = MemoryGraph::new();
         add_prefixes(&mut graph);
-        RdfWriter { graph }
+        TurtleWriter { graph }
     }
-    pub(crate) fn graph(&mut self) -> &mut MemoryGraph {
-        &mut self.graph
+}
+impl GraphWriter for TurtleWriter {
+    fn add_node(&mut self, node: &Iri, class: &Iri, label: &str) {
+        self.graph.add(node.clone(), rdf::TYPE.clone(), class);
+        self.graph.add(node, rdfs::LABEL.clone(), Literal::from(label.to_string()));
     }
-    pub(crate) fn write(&self) -> Result<(), Error> {
+    fn add_edge(&mut self, subject: &Iri, predicate: &Iri, object: &Iri,
+                           _evidence_class: &str) {
+        self.graph.add(subject, predicate, object);
+    }
+    fn finalize(&self) -> Result<(), Error> {
         penyu::write::turtle::write(&mut std::io::stdout(), &self.graph)?;
         Ok(())
     }

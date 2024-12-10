@@ -1,5 +1,5 @@
 use crate::data::sources;
-use crate::distill::rdf::RdfWriter;
+use crate::distill::write::GraphWriter;
 use crate::error::Error;
 use crate::mapper::hgnc::{GeneMapper, ProteinMapper};
 use crate::mapper::track::Tracker;
@@ -38,6 +38,7 @@ pub(crate) struct ExRnaSummary {
 pub(crate) struct RbpGene {
     rbp: String,
     gene: String,
+    read_count: u64
 }
 
 impl ExRnaSummary {
@@ -51,7 +52,8 @@ impl Summary for ExRnaSummary {
         let json_obj = json::as_json_obj(&line)?;
         let gene = json::get_string(&json_obj, "gene_symbol")?;
         let rbp = json::get_string(&json_obj, "rbp")?;
-        let rbp_gene = RbpGene { rbp, gene };
+        let read_count = json::get_number(&json_obj, "read_count")?.round() as u64;
+        let rbp_gene = RbpGene { rbp, gene, read_count };
         let ExRnaSummary { mut n_original, mut rbp_genes } = self;
         n_original += 1;
         rbp_genes.insert(rbp_gene);
@@ -71,21 +73,23 @@ impl LinePipe for ExRnaPipe {
     fn new_summary(&self) -> Self::Summary { ExRnaSummary::new() }
 }
 
-pub(crate) fn add_triples_ex_rna(rdf_writer: &mut RdfWriter, runtime: &Runtime,
-                                 gene_mapper: &GeneMapper, protein_mapper: &ProteinMapper,
-                                 gene_tracker: &mut Tracker, protein_tracker: &mut Tracker)
-    -> Result<(), Error> {
-    let graph = rdf_writer.graph();
+pub(crate) fn add_triples_ex_rna<W: GraphWriter>(writer: &mut W, runtime: &Runtime,
+                                                 gene_mapper: &GeneMapper,
+                                                 protein_mapper: &ProteinMapper,
+                                                 gene_tracker: &mut Tracker,
+                                                 protein_tracker: &mut Tracker)
+                                                 -> Result<(), Error> {
     let summary = distill_ex_rna(runtime)?;
     let molecularly_interacts_with = penyu::vocabs::obo::ns::RO.join_str("0002436");
     let gene_type = vocabs::Concepts::Gene.concept_iri();
     let protein_type = vocabs::Concepts::Protein.concept_iri();
-    for RbpGene { rbp, gene } in summary.rbp_genes.iter() {
+    for RbpGene { rbp, gene, read_count } in summary.rbp_genes.iter() {
         let rbp_iri = distill::get_protein_uri(protein_mapper, rbp, protein_tracker);
-        graph.add(&rbp_iri, penyu::vocabs::rdf::TYPE, protein_type);
+        writer.add_node(&rbp_iri, protein_type, rbp);
         let gene_iri = distill::get_gene_iri(gene_mapper, gene, gene_tracker);
-        graph.add(&gene_iri, penyu::vocabs::rdf::TYPE, gene_type);
-        graph.add(&rbp_iri, &molecularly_interacts_with, &gene_iri);
+        writer.add_node(&gene_iri, gene_type, gene);
+        let evidence_class = format!("read_count={read_count}");
+        writer.add_edge(&rbp_iri, &molecularly_interacts_with, &gene_iri, &evidence_class);
     }
     Ok(())
 }

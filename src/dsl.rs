@@ -12,7 +12,7 @@ mod commands {
     pub(crate) const LIST_SOURCES: &str = "list-sources";
     pub(crate) const REPORT_STATS: &str = "report-stats";
     pub(crate) const PRINT_TURTLE: &str = "print-turtle";
-    pub(crate) const EXPORT_UBKG: &str = "export-ubkg";
+    pub(crate) const EXPORT_DDKG: &str = "export-ddkg";
     pub(crate) const ALL: [&str; 8] = [
         LIST_BUCKETS,
         PRINT_LINES,
@@ -21,7 +21,7 @@ mod commands {
         LIST_SOURCES,
         REPORT_STATS,
         PRINT_TURTLE,
-        EXPORT_UBKG,
+        EXPORT_DDKG,
     ];
 }
 pub(crate) enum Command {
@@ -32,7 +32,7 @@ pub(crate) enum Command {
     ListSources,
     ReportStats(Vec<Source>),
     PrintTurtle(Vec<Source>),
-    ExportUbkg(PathBuf, Option<Source>),
+    ExportDdkg(PathBuf, Vec<Source>),
 }
 
 pub(crate) fn get_command_from_parts<I>(mut parts: I) -> Result<Command, Error>
@@ -72,10 +72,14 @@ where
                 };
                 Ok(Command::PrintTurtle(sources))
             }
-            commands::EXPORT_UBKG => {
+            commands::EXPORT_DDKG => {
                 let path = parse_path(parts.next())?;
                 let source = parse_source_argument(parts.next())?;
-                Ok(Command::ExportUbkg(path, source))
+                let sources = match source {
+                    Some(source) => vec![source],
+                    None => data::ALL_SOURCES.to_vec(),
+                };
+                Ok(Command::ExportDdkg(path, sources))
             }
             _ => Err(Error::from(format!(
                 "Unknown command '{}'. {}",

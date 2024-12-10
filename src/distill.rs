@@ -3,11 +3,12 @@ mod four_dn;
 mod gtex_sldsc;
 pub(crate) mod gtex_tstat;
 mod mappers;
-mod rdf;
 mod util;
-mod node;
+mod write;
 
 use crate::data::Source;
+use crate::distill::write::turtle::TurtleWriter;
+use crate::distill::write::GraphWriter;
 use crate::error::Error;
 use crate::mapper::hgnc::{GeneMapper, ProteinMapper};
 use crate::mapper::tissues::TissueMapper;
@@ -16,6 +17,7 @@ use crate::runtime::Runtime;
 use crate::vocabs::Concepts;
 use penyu::model::iri::Iri;
 use std::path::Path;
+use crate::distill::write::ddkg::DdkgWriter;
 
 pub(crate) fn report_stats(runtime: &Runtime, sources: &[Source]) -> Result<(), Error> {
     let mut n_assertions: usize = 0;
@@ -31,7 +33,21 @@ pub(crate) fn report_stats(runtime: &Runtime, sources: &[Source]) -> Result<(), 
     Ok(())
 }
 pub(crate) fn print_turtle(runtime: &Runtime, sources: &[Source]) -> Result<(), Error> {
-    let mut rdf_writer = rdf::RdfWriter::new();
+    let mut turtle_writer = TurtleWriter::new();
+    output_graph(runtime, sources, &mut turtle_writer)
+}
+
+pub(crate) fn export_ubkg(
+    runtime: &Runtime,
+    path: &Path,
+    source: &[Source],
+) -> Result<(), Error> {
+    let mut writer = DdkgWriter::new();
+    output_graph(runtime, source, &mut writer)
+}
+
+fn output_graph<W: GraphWriter>(runtime: &Runtime, sources: &[Source], writer: &mut W)
+                                -> Result<(), Error> {
     let mappers_chest = mappers::MappersChest::new()?;
     let mut tissue_tracker = Tracker::new("tissues".to_string());
     let mut gene_tracker = Tracker::new("genes".to_string());
@@ -42,7 +58,7 @@ pub(crate) fn print_turtle(runtime: &Runtime, sources: &[Source]) -> Result<(), 
                 let tissue_mapper = mappers_chest.get_tissue_mapper()?;
                 let gene_mapper = mappers_chest.get_gene_mapper()?;
                 gtex_tstat::add_triples_gtex_tstat(
-                    &mut rdf_writer,
+                    writer,
                     runtime,
                     gene_mapper,
                     tissue_mapper,
@@ -53,7 +69,7 @@ pub(crate) fn print_turtle(runtime: &Runtime, sources: &[Source]) -> Result<(), 
             Source::GtexSldsc => {
                 let tissue_mapper = mappers_chest.get_tissue_mapper()?;
                 gtex_sldsc::add_triples_gtex_sldsc(
-                    &mut rdf_writer,
+                    writer,
                     runtime,
                     tissue_mapper,
                     &mut tissue_tracker,
@@ -62,7 +78,7 @@ pub(crate) fn print_turtle(runtime: &Runtime, sources: &[Source]) -> Result<(), 
             Source::FourDnGeneBio => {
                 let gene_mapper = mappers_chest.get_gene_mapper()?;
                 four_dn::add_triples_four_dn(
-                    &mut rdf_writer,
+                    writer,
                     runtime,
                     gene_mapper,
                     &mut gene_tracker,
@@ -72,7 +88,7 @@ pub(crate) fn print_turtle(runtime: &Runtime, sources: &[Source]) -> Result<(), 
                 let gene_mapper = mappers_chest.get_gene_mapper()?;
                 let protein_mapper = mappers_chest.get_protein_mapper()?;
                 ex_rna::add_triples_ex_rna(
-                    &mut rdf_writer,
+                    writer,
                     runtime,
                     gene_mapper,
                     protein_mapper,
@@ -91,16 +107,8 @@ pub(crate) fn print_turtle(runtime: &Runtime, sources: &[Source]) -> Result<(), 
     if protein_tracker.any_notes() {
         eprintln!("{}", protein_tracker.report());
     }
-    rdf_writer.write()?;
+    writer.finalize()?;
     Ok(())
-}
-
-pub(crate) fn export_ubkg(
-    runtime: &Runtime,
-    path: &Path,
-    source: &Option<Source>,
-) -> Result<(), Error> {
-    todo!()
 }
 
 fn get_tissue_iri(tissue_mapper: &TissueMapper, tissue: &str, tracker: &mut Tracker) -> Iri {

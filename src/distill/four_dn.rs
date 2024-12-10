@@ -1,6 +1,6 @@
 use crate::data::sources;
-use crate::distill::rdf::RdfWriter;
-use crate::distill::util::parse_mondo_id;
+use crate::distill::util::{parse_mondo_id, OrdF64};
+use crate::distill::write::GraphWriter;
 use crate::error::Error;
 use crate::mapper::hgnc::GeneMapper;
 use crate::mapper::track::Tracker;
@@ -14,12 +14,13 @@ use std::collections::BTreeSet;
 pub(crate) fn report_four_dn(runtime: &Runtime) -> Result<usize, Error> {
     println!("From the 4DN gene bio data:");
     let summary = distill_four_dn(runtime)?;
+    let n_assertions = summary.snp_genes_phenotypes.len();
     println!("Original records: {}", summary.n_original);
-    println!("Assertions: lead SNP - target-gene-prediction - gene ({})", summary.snp_genes.len());
-    println!("Assertions: lead SNP - associated with - Mondo ID ({})", summary.snp_mondo_ids.len());
-    let n_assertions = summary.snp_genes.len() + summary.snp_mondo_ids.len();
-    println!("Total assertions: {}", n_assertions);
-    Ok(n_assertions)
+    println!("Assertions: lead SNP - target-gene-prediction - gene ({})", n_assertions);
+    println!("Assertions: lead SNP - associated with - Mondo ID ({})", n_assertions);
+    let n_assertions_total = 2 * n_assertions;
+    println!("Total assertions: {}", n_assertions_total);
+    Ok(n_assertions_total)
 }
 
 pub(crate) fn distill_four_dn(runtime: &Runtime) -> Result<FourDnSummary, Error> {
@@ -30,32 +31,27 @@ pub(crate) fn distill_four_dn(runtime: &Runtime) -> Result<FourDnSummary, Error>
 }
 
 pub(crate) struct FourDnPipe {
-    s3uri: S3Uri
+    s3uri: S3Uri,
 }
 pub(crate) struct FourDnSummary {
     n_original: usize,
-    snp_genes: BTreeSet<SnpGene>,
-    snp_mondo_ids: BTreeSet<SnpMondoId>,
+    snp_genes_phenotypes: BTreeSet<SnpGenePhenotype>,
 }
 
 #[derive(Ord, PartialOrd, Eq, PartialEq)]
-struct SnpGene {
+struct SnpGenePhenotype {
     snp: String,
     gene: String,
-}
-
-#[derive(Ord, PartialOrd, Eq, PartialEq)]
-struct SnpMondoId {
-    snp: String,
-    mondo_id: String,
+    phenotype: String,
+    mondo_id: u32,
+    posterior_probability: OrdF64,
 }
 
 impl FourDnSummary {
     pub(crate) fn new() -> FourDnSummary {
         FourDnSummary {
             n_original: 0,
-            snp_genes: BTreeSet::new(),
-            snp_mondo_ids: BTreeSet::new(),
+            snp_genes_phenotypes: BTreeSet::new(),
         }
     }
 }
@@ -63,19 +59,27 @@ impl FourDnSummary {
 impl Summary for FourDnSummary {
     fn next(self, line: String) -> Result<NextSummary<Self>, Error> {
         let json_obj = json::as_json_obj(&line)?;
-        let mondo_id = json::get_string(&json_obj, "mondo_id")?;
         let snp = json::get_string(&json_obj, "leadSNP")?;
         let gene = json::get_string(&json_obj, "gene")?;
-        let snp_gene = SnpGene { snp: snp.clone(), gene };
-        let snp_mondo_id = SnpMondoId { snp, mondo_id };
+        let phenotype = json::get_string(&json_obj, "phenotype")?;
+        let mondo_id =
+            parse_mondo_id(&json::get_string(&json_obj, "mondo_id")?)?;
+        let posterior_probability =
+            OrdF64::new(json::get_number(&json_obj, "posteriorProbability")?);
+        let snp_gene = SnpGenePhenotype {
+            snp, gene, mondo_id, phenotype, posterior_probability,
+        };
         let FourDnSummary {
-            mut n_original, mut snp_genes, mut snp_mondo_ids
+            mut n_original,
+            snp_genes_phenotypes: mut snp_genes_mondo_ids,
         } = self;
         n_original += 1;
-        snp_genes.insert(snp_gene);
-        snp_mondo_ids.insert(snp_mondo_id);
+        snp_genes_mondo_ids.insert(snp_gene);
         Ok(NextSummary {
-            summary: FourDnSummary { n_original, snp_genes, snp_mondo_ids }
+            summary: FourDnSummary {
+                n_original,
+                snp_genes_phenotypes: snp_genes_mondo_ids,
+            },
         })
     }
 }
@@ -96,32 +100,34 @@ impl LinePipe for FourDnPipe {
     }
 }
 
-pub(crate) fn add_triples_four_dn(rdf_writer: &mut RdfWriter, runtime: &Runtime,
-                                  gene_mapper: &GeneMapper, gene_tracker: &mut Tracker)
-    -> Result<(), Error> {
-    let graph = rdf_writer.graph();
+pub(crate) fn add_triples_four_dn<W: GraphWriter>(
+    writer: &mut W,
+    runtime: &Runtime,
+    gene_mapper: &GeneMapper,
+    gene_tracker: &mut Tracker,
+) -> Result<(), Error> {
     let summary = distill_four_dn(runtime)?;
     let variant_type = Concepts::Variant.concept_iri();
     let gene_type = Concepts::Gene.concept_iri();
     let disease_type = Concepts::Disease.concept_iri();
     let indirectly_positively_regulates_activity_of =
         penyu::vocabs::obo::ns::RO.join_str("0011013");
-    let contributes_to_frequency_of_condition =
-        penyu::vocabs::obo::ns::RO.join_str("0003306");
-    for SnpGene { snp, gene } in summary.snp_genes {
+    let contributes_to_frequency_of_condition = penyu::vocabs::obo::ns::RO.join_str("0003306");
+    for SnpGenePhenotype {
+        snp, gene, phenotype, mondo_id, posterior_probability
+    } in summary.snp_genes_phenotypes {
         let snp_iri = Concepts::Variant.create_internal_iri(&snp);
+        writer.add_node(&snp_iri, variant_type, &snp);
         let gene_iri = distill::get_gene_iri(gene_mapper, &gene, gene_tracker);
-        graph.add(&snp_iri, penyu::vocabs::rdf::TYPE, variant_type);
-        graph.add(&gene_iri, penyu::vocabs::rdf::TYPE, gene_type);
-        graph.add(&snp_iri, &indirectly_positively_regulates_activity_of, &gene_iri);
-    }
-    for SnpMondoId { snp, mondo_id } in summary.snp_mondo_ids {
-        let snp_iri = Concepts::Variant.create_internal_iri(&snp);
-        let mondo_id = parse_mondo_id(&mondo_id)?;
+        writer.add_node(&gene_iri, gene_type, &gene);
         let mondo_iri = penyu::vocabs::obo::Ontology::MONDO.create_iri(mondo_id);
-        graph.add(&snp_iri, penyu::vocabs::rdf::TYPE, variant_type);
-        graph.add(&mondo_iri, penyu::vocabs::rdf::TYPE, disease_type);
-        graph.add(&snp_iri, &contributes_to_frequency_of_condition, &mondo_iri);
+        writer.add_node(&mondo_iri, disease_type, &phenotype);
+        let evidence_class =
+            format!("posterior_probability={}", posterior_probability.value);
+        writer.add_edge(&snp_iri, &indirectly_positively_regulates_activity_of, &gene_iri,
+                        &evidence_class);
+        writer.add_edge(&snp_iri, &contributes_to_frequency_of_condition, &mondo_iri,
+                        &evidence_class);
     }
     Ok(())
 }

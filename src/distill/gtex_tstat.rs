@@ -1,5 +1,5 @@
 use crate::data::sources;
-use crate::distill::rdf::RdfWriter;
+use crate::distill::write::GraphWriter;
 use crate::error::Error;
 use crate::mapper::hgnc::GeneMapper;
 use crate::mapper::tissues::TissueMapper;
@@ -100,22 +100,22 @@ impl LinePipe for GtexTstatPipe {
     fn new_summary(&self) -> Self::Summary { GtexTstatSummary::new() }
 }
 
-pub(crate) fn add_triples_gtex_tstat(writer: &mut RdfWriter, runtime: &Runtime,
+pub(crate) fn add_triples_gtex_tstat<W: GraphWriter>(writer: &mut W, runtime: &Runtime,
                                      gene_mapper: &GeneMapper, tissue_mapper: &TissueMapper,
                                      gene_tracker: &mut Tracker, tissue_tracker: &mut Tracker)
                                      -> Result<(), Error> {
-    let graph = writer.graph();
     let summary = distill_gtex_tstat(runtime)?;
     let biosample_type = Concepts::Tissue.concept_iri();
     let gene_type = Concepts::Gene.concept_iri();
     let over_expressed_in = penyu::vocabs::obo::Ontology::RO.create_iri(2245);
     for (biosample, gene_tstat_list) in summary.biosample_to_genes.iter() {
         let biosample_iri = distill::get_tissue_iri(tissue_mapper, biosample, tissue_tracker);
-        graph.add(&biosample_iri, penyu::vocabs::rdf::TYPE, biosample_type);
+        writer.add_node(&biosample_iri, biosample_type, biosample);
         for gene_tstat in gene_tstat_list {
             let gene_iri = distill::get_gene_iri(gene_mapper, &gene_tstat.gene, gene_tracker);
-            graph.add(&gene_iri, penyu::vocabs::rdf::TYPE, gene_type);
-            graph.add(&biosample_iri, &over_expressed_in, &gene_iri);
+            writer.add_node(&gene_iri, gene_type, &gene_tstat.gene);
+            let evidence = format!("tstat={}", gene_tstat.tstat);
+            writer.add_edge(&biosample_iri, &over_expressed_in, &gene_iri, &evidence);
         }
     }
     Ok(())

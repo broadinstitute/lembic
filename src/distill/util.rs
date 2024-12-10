@@ -1,16 +1,16 @@
 use crate::error::Error;
+use std::cmp::Ordering;
 
 pub(crate) fn parse_mondo_id(mondo_id: &str) -> Result<u32, Error> {
     let mut parts = mondo_id.split(':');
     match (parts.next(), parts.next(), parts.next()) {
         (Some("MONDO"), Some(id), None) => {
-            let id =
-                id.parse::<u32>().map_err(|parse_error|
-                    Error::wrap("Invalid MONDO ID".to_string(), parse_error)
-                )?;
+            let id = id
+                .parse::<u32>()
+                .map_err(|parse_error| Error::wrap("Invalid MONDO ID".to_string(), parse_error))?;
             Ok(id)
         }
-        _ => Err(Error::from(format!("Invalid MONDO ID: {}", mondo_id)))
+        _ => Err(Error::from(format!("Invalid MONDO ID: {}", mondo_id))),
     }
 }
 
@@ -44,3 +44,52 @@ pub(crate) fn clean_up_label(label: &str) -> String {
     }
     string
 }
+
+#[derive(Copy, Clone)]
+pub(crate) struct OrdF64 {
+    pub(crate) value: f64,
+}
+
+impl OrdF64 {
+    pub(crate) fn new(value: f64) -> OrdF64 { OrdF64 { value } }
+}
+
+impl Eq for OrdF64 {}
+
+impl PartialEq<Self> for OrdF64 {
+    fn eq(&self, other: &Self) -> bool {
+        match (self.value.is_nan(), other.value.is_nan()) {
+            (true, true) => true,
+            (true, false) => false,
+            (false, true) => false,
+            (false, false) => self.value == other.value
+        }
+    }
+}
+
+impl PartialOrd<Self> for OrdF64 {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for OrdF64 {
+    fn cmp(&self, other: &Self) -> Ordering {
+        match (self.value.is_nan(), other.value.is_nan()) {
+            (true, true) => Ordering::Equal,
+            (true, false) => Ordering::Greater,
+            (false, true) => Ordering::Less,
+            (false, false) => {
+                if self.value < other.value {
+                    Ordering::Less
+                } else if self.value > other.value {
+                    Ordering::Greater
+                } else {
+                    Ordering::Equal
+                }
+            }
+        }
+    }
+}
+
+
