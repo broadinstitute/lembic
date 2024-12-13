@@ -15,10 +15,10 @@ pub(crate) fn execute(runtime: &Runtime, command: &Command) -> Result<(), Error>
             data::list_sources();
             Ok(())
         }
-        Command::ReportStats(sources) => { distill::report_stats(runtime, sources) }
-        Command::PrintTurtle(sources) => { distill::print_turtle(runtime, sources) }
-        Command::ExportDdkg(path, source) => {
-            distill::export_ubkg(runtime, path, source)
+        Command::ReportStats(selection) => { distill::report_stats(runtime, selection) }
+        Command::PrintTurtle(selection) => { distill::print_turtle(runtime, selection) }
+        Command::ExportDdkg(path, selection) => {
+            distill::export_ubkg(runtime, path, selection)
         }
     }
 }

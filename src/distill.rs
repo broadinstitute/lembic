@@ -6,7 +6,7 @@ mod mappers;
 mod util;
 mod write;
 
-use crate::data::Source;
+use crate::data::{Selection, Source};
 use crate::distill::write::turtle::TurtleWriter;
 use crate::distill::write::GraphWriter;
 use crate::error::Error;
@@ -19,9 +19,9 @@ use penyu::model::iri::Iri;
 use std::path::Path;
 use crate::distill::write::ddkg::DdkgWriter;
 
-pub(crate) fn report_stats(runtime: &Runtime, sources: &[Source]) -> Result<(), Error> {
+pub(crate) fn report_stats(runtime: &Runtime, selection: &Selection) -> Result<(), Error> {
     let mut n_assertions: usize = 0;
-    for source in sources {
+    for source in &selection.sources {
         n_assertions += match source {
             Source::GtexTstat => gtex_tstat::report_gtex_tstat(runtime),
             Source::GtexSldsc => gtex_sldsc::report_gtex_sldsc(runtime),
@@ -32,27 +32,27 @@ pub(crate) fn report_stats(runtime: &Runtime, sources: &[Source]) -> Result<(), 
     println!("Total assertions across selected data: {}", n_assertions);
     Ok(())
 }
-pub(crate) fn print_turtle(runtime: &Runtime, sources: &[Source]) -> Result<(), Error> {
+pub(crate) fn print_turtle(runtime: &Runtime, selection: &Selection) -> Result<(), Error> {
     let mut turtle_writer = TurtleWriter::new();
-    output_graph(runtime, sources, &mut turtle_writer)
+    output_graph(runtime, selection, &mut turtle_writer)
 }
 
 pub(crate) fn export_ubkg(
     runtime: &Runtime,
     path: &Path,
-    source: &[Source],
+    selection: &Selection,
 ) -> Result<(), Error> {
-    let mut writer = DdkgWriter::new();
-    output_graph(runtime, source, &mut writer)
+    let mut writer = DdkgWriter::new(path.to_path_buf());
+    output_graph(runtime, selection, &mut writer)
 }
 
-fn output_graph<W: GraphWriter>(runtime: &Runtime, sources: &[Source], writer: &mut W)
+fn output_graph<W: GraphWriter>(runtime: &Runtime, selection: &Selection, writer: &mut W)
                                 -> Result<(), Error> {
     let mappers_chest = mappers::MappersChest::new()?;
     let mut tissue_tracker = Tracker::new("tissues".to_string());
     let mut gene_tracker = Tracker::new("genes".to_string());
     let mut protein_tracker = Tracker::new("proteins".to_string());
-    for source in sources {
+    for source in &selection.sources {
         match source {
             Source::GtexTstat => {
                 let tissue_mapper = mappers_chest.get_tissue_mapper()?;
@@ -82,6 +82,7 @@ fn output_graph<W: GraphWriter>(runtime: &Runtime, sources: &[Source], writer: &
                     runtime,
                     gene_mapper,
                     &mut gene_tracker,
+                    selection.with_variants
                 )?;
             }
             Source::ExRnaGeneCounts => {
@@ -107,7 +108,7 @@ fn output_graph<W: GraphWriter>(runtime: &Runtime, sources: &[Source], writer: &
     if protein_tracker.any_notes() {
         eprintln!("{}", protein_tracker.report());
     }
-    writer.finalize()?;
+    writer.serialize()?;
     Ok(())
 }
 

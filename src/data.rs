@@ -2,6 +2,11 @@ use crate::error::Error;
 use crate::s3::S3Uri;
 use std::fmt::{Display, Formatter};
 
+
+pub(crate) struct Selection {
+    pub(crate) sources: Vec<Source>,
+    pub(crate) with_variants: bool,
+}
 #[derive(Copy, Clone)]
 pub(crate) enum Source {
     GtexTstat,
@@ -106,5 +111,26 @@ pub(crate) fn get_data_location(input: &str) -> Result<S3Uri, Error> {
 pub(crate) fn list_sources() {
     for source in ALL_SOURCES {
         println!("{}: {}", source, source.get_s3uri());
+    }
+}
+
+impl Selection {
+    pub(crate) fn new() -> Selection {
+        Selection {
+            sources: Vec::new(),
+            with_variants: true,
+        }
+    }
+    pub(crate) fn add_source(&mut self, source: Source) {
+        self.sources.push(source);
+    }
+    pub(crate) fn no_variants(&mut self) {
+        self.with_variants = false;
+    }
+    pub(crate) fn three_sources(&mut self) {
+        self.sources = vec![Source::GtexTstat, Source::GtexSldsc, Source::FourDnGeneBio];
+    }
+    pub(crate) fn all_sources(&mut self) {
+        self.sources = ALL_SOURCES.to_vec();
     }
 }

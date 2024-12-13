@@ -1,45 +1,69 @@
-use std::collections::BTreeMap;
-use penyu::model::iri::Iri;
-use penyu::model::node::{Node, Entity};
-use penyu::model::triple::Triple;
 use crate::distill::util;
 use crate::distill::write::GraphWriter;
 use crate::error::Error;
+use penyu::model::iri::Iri;
+use std::collections::BTreeMap;
+use std::fs::File;
+use std::io::BufWriter;
+use std::path::{Path, PathBuf};
+use std::io::Write;
+
+const NODES_FILE: &str = "nodes.tsv";
+const EDGES_FILE: &str = "edges.tsv";
 
 struct NodeProps {
-    class: Iri,
-    label: String
+    label: String,
+}
+
+#[derive(Eq, PartialEq, Ord, PartialOrd)]
+struct Edge {
+    subject: Iri,
+    predicate: Iri,
+    object: Iri
 }
 
 pub(crate) struct DdkgWriter {
+    folder: PathBuf,
     nodes: BTreeMap<Iri, NodeProps>,
-    edges: BTreeMap<Triple, String>
+    edges: BTreeMap<Edge, String>,
 }
 
 impl DdkgWriter {
-    pub(crate) fn new() -> DdkgWriter {
-        DdkgWriter { nodes: BTreeMap::new(), edges: BTreeMap::new() }
+    pub(crate) fn new(folder: PathBuf) -> DdkgWriter {
+        DdkgWriter {
+            folder,
+            nodes: BTreeMap::new(),
+            edges: BTreeMap::new(),
+        }
     }
 }
 
 impl GraphWriter for DdkgWriter {
-    fn add_node(&mut self, node: &Iri, class: &Iri, label: &str) {
-        self.nodes.insert(node.clone(), NodeProps {
-            class: class.clone(),
-            label: label.to_string()
-        });
+    fn add_node(&mut self, node: &Iri, _class: &Iri, label: &str) {
+        self.nodes.insert(
+            node.clone(),
+            NodeProps {
+                label: label.to_string(),
+            },
+        );
     }
 
-    fn add_edge(&mut self, _subject: &Iri, predicate: &Iri, object: &Iri, evidence_class: &str) {
-        let triple =
-            Triple::new(Entity::from(_subject.clone()), predicate.clone(),
-                        Node::from(object.clone()));
-        self.edges.insert(triple, evidence_class.to_string());
+    fn add_edge(&mut self, subject: &Iri, predicate: &Iri, object: &Iri, evidence_class: &str) {
+        let edge = Edge {
+            subject: subject.clone(),
+            predicate: predicate.clone(),
+            object: object.clone(),
+        };
+        self.edges.insert(edge, evidence_class.to_string());
     }
 
-    fn finalize(&self) -> Result<(), Error> {
+    fn serialize(&self) -> Result<(), Error> {
         let iris_to_ids = create_node_ids(&self.nodes)?;
-        unimplemented!()
+        let nodes_file = self.folder.join(NODES_FILE);
+        write_nodes(&nodes_file, &self.nodes, &iris_to_ids)?;
+        let edges_file = self.folder.join(EDGES_FILE);
+        write_edges(&edges_file, &self.edges, &iris_to_ids)?;
+        Ok(())
     }
 }
 
@@ -66,8 +90,57 @@ fn node_iri_to_id(iri: &Iri) -> Result<String, Error> {
     } else if let Some(gene) = iri.strip_prefix(crate::vocabs::ns::GENE) {
         Ok(format!("KP4CD-GENE KP4CD-GENE:{}", gene))
     } else if let Some(variant) = iri.strip_prefix(crate::vocabs::ns::VARIANT) {
-        Ok(format!("KP4CD-VARIANT KP4CD-VARIANT:{}", util::clean_up_label(&variant)))
+        Ok(format!(
+            "KP4CD-VARIANT KP4CD-VARIANT:{}",
+            util::clean_up_label(&variant)
+        ))
     } else {
-        Err(Error::from(format!("Using IRIs like this are not implemented: {}", iri)))
+        Err(Error::from(format!(
+            "Using IRIs like this are not implemented: {}",
+            iri
+        )))
     }
+}
+
+fn write_nodes(
+    path: &Path,
+    nodes: &BTreeMap<Iri, NodeProps>,
+    node_iris_to_ids: &BTreeMap<Iri, String>,
+) -> Result<(), Error> {
+    let mut writer = BufWriter::new(File::create(path)?);
+    writeln!(writer, "node_id\tlabel")?;
+    for (iri, props) in nodes {
+        let id = node_iris_to_ids
+            .get(iri)
+            .ok_or_else(|| Error::from(format!("Node IRI not found in map: {}", iri)))?;
+        writeln!(writer, "{}\t{}", id, props.label)?;
+    }
+    Ok(())
+}
+
+fn write_edges(
+    path: &Path,
+    edges: &BTreeMap<Edge, String>,
+    node_iris_to_ids: &BTreeMap<Iri, String>,
+) -> Result<(), Error> {
+    let mut writer = BufWriter::new(File::create(path)?);
+    writeln!(writer, "subject_id\trelationship\tobject_id\tevidence_class")?;
+    for (triple, evidence_class) in edges {
+        let subject_id = node_iris_to_ids
+            .get(&triple.subject)
+            .ok_or_else(|| Error::from(
+                format!("Subject IRI not found in map: {}", triple.subject)
+            ))?;
+        let object_id = node_iris_to_ids
+            .get(&triple.object)
+            .ok_or_else(|| Error::from(
+                format!("Object IRI not found in map: {}", triple.object)
+            ))?;
+        writeln!(
+            writer,
+            "{}\t{}\t{}\t{}",
+            subject_id, triple.predicate, object_id, evidence_class
+        )?;
+    }
+    Ok(())
 }

@@ -1,5 +1,4 @@
-use crate::data;
-use crate::data::{get_data_location, Source};
+use crate::data::{get_data_location, Selection, Source};
 use crate::error::Error;
 use crate::s3::S3Uri;
 use std::path::PathBuf;
@@ -30,9 +29,9 @@ pub(crate) enum Command {
     PrintSchema(S3Uri),
     PrintTabular(S3Uri, Vec<String>),
     ListSources,
-    ReportStats(Vec<Source>),
-    PrintTurtle(Vec<Source>),
-    ExportDdkg(PathBuf, Vec<Source>),
+    ReportStats(Selection),
+    PrintTurtle(Selection),
+    ExportDdkg(PathBuf, Selection),
 }
 
 pub(crate) fn get_command_from_parts<I>(mut parts: I) -> Result<Command, Error>
@@ -57,29 +56,17 @@ where
             }
             commands::LIST_SOURCES => Ok(Command::ListSources),
             commands::REPORT_STATS => {
-                let source = parse_source_argument(parts.next())?;
-                let sources = match source {
-                    Some(source) => vec![source],
-                    None => data::ALL_SOURCES.to_vec(),
-                };
-                Ok(Command::ReportStats(sources))
+                let selection = parse_selection_argument(parts.next())?;
+                Ok(Command::ReportStats(selection))
             }
             commands::PRINT_TURTLE => {
-                let source = parse_source_argument(parts.next())?;
-                let sources = match source {
-                    Some(source) => vec![source],
-                    None => data::ALL_SOURCES.to_vec(),
-                };
-                Ok(Command::PrintTurtle(sources))
+                let selection = parse_selection_argument(parts.next())?;
+                Ok(Command::PrintTurtle(selection))
             }
             commands::EXPORT_DDKG => {
                 let path = parse_path(parts.next())?;
-                let source = parse_source_argument(parts.next())?;
-                let sources = match source {
-                    Some(source) => vec![source],
-                    None => data::ALL_SOURCES.to_vec(),
-                };
-                Ok(Command::ExportDdkg(path, sources))
+                let selection = parse_selection_argument(parts.next())?;
+                Ok(Command::ExportDdkg(path, selection))
             }
             _ => Err(Error::from(format!(
                 "Unknown command '{}'. {}",
@@ -104,10 +91,27 @@ fn parse_object_argument(arg: Option<String>) -> Result<S3Uri, Error> {
     }
 }
 
-fn parse_source_argument(arg: Option<String>) -> Result<Option<Source>, Error> {
+fn parse_selection_argument(arg: Option<String>) -> Result<Selection, Error> {
     match arg {
-        Some(name) => Ok(Some(Source::try_from(name.as_str())?)),
-        None => Ok(None),
+        Some(arg) => {
+            let mut selection = Selection::new();
+            for part in arg.split(',') {
+                if part == "three" {
+                    selection.three_sources();
+                } else if part == "novars" {
+                    selection.no_variants();
+                } else {
+                    let source = Source::try_from(part)?;
+                    selection.add_source(source);
+                }
+            }
+            Ok(selection)
+        },
+        None => {
+            let mut selection = Selection::new();
+            selection.all_sources();
+            Ok(selection)
+        },
     }
 }
 

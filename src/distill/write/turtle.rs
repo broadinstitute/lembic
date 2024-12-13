@@ -26,7 +26,7 @@ impl GraphWriter for TurtleWriter {
                            _evidence_class: &str) {
         self.graph.add(subject, predicate, object);
     }
-    fn finalize(&self) -> Result<(), Error> {
+    fn serialize(&self) -> Result<(), Error> {
         penyu::write::turtle::write(&mut std::io::stdout(), &self.graph)?;
         Ok(())
     }

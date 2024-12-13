@@ -10,6 +10,7 @@ use crate::s3::S3Uri;
 use crate::vocabs::Concepts;
 use crate::{distill, json, s3};
 use std::collections::BTreeSet;
+use penyu::vocabs::obo::ns::RO;
 
 pub(crate) fn report_four_dn(runtime: &Runtime) -> Result<usize, Error> {
     println!("From the 4DN gene bio data:");
@@ -105,29 +106,33 @@ pub(crate) fn add_triples_four_dn<W: GraphWriter>(
     runtime: &Runtime,
     gene_mapper: &GeneMapper,
     gene_tracker: &mut Tracker,
+    with_variants: bool
 ) -> Result<(), Error> {
     let summary = distill_four_dn(runtime)?;
     let variant_type = Concepts::Variant.concept_iri();
     let gene_type = Concepts::Gene.concept_iri();
     let disease_type = Concepts::Disease.concept_iri();
-    let indirectly_positively_regulates_activity_of =
-        penyu::vocabs::obo::ns::RO.join_str("0011013");
-    let contributes_to_frequency_of_condition = penyu::vocabs::obo::ns::RO.join_str("0003306");
+    let indirectly_positively_regulates_activity_of = RO.join_str("0011013");
+    let contributes_to_frequency_of_condition = RO.join_str("0003306");
+    let regulates = RO.join_str("0002211");
     for SnpGenePhenotype {
         snp, gene, phenotype, mondo_id, posterior_probability
     } in summary.snp_genes_phenotypes {
-        let snp_iri = Concepts::Variant.create_internal_iri(&snp);
-        writer.add_node(&snp_iri, variant_type, &snp);
         let gene_iri = distill::get_gene_iri(gene_mapper, &gene, gene_tracker);
         writer.add_node(&gene_iri, gene_type, &gene);
         let mondo_iri = penyu::vocabs::obo::Ontology::MONDO.create_iri(mondo_id);
         writer.add_node(&mondo_iri, disease_type, &phenotype);
         let evidence_class =
             format!("posterior_probability={}", posterior_probability.value);
-        writer.add_edge(&snp_iri, &indirectly_positively_regulates_activity_of, &gene_iri,
-                        &evidence_class);
-        writer.add_edge(&snp_iri, &contributes_to_frequency_of_condition, &mondo_iri,
-                        &evidence_class);
+        writer.add_edge(&gene_iri, &regulates, &mondo_iri, &evidence_class);
+        if with_variants {
+            let snp_iri = Concepts::Variant.create_internal_iri(&snp);
+            writer.add_node(&snp_iri, variant_type, &snp);
+            writer.add_edge(&snp_iri, &indirectly_positively_regulates_activity_of, &gene_iri,
+                            &evidence_class);
+            writer.add_edge(&snp_iri, &contributes_to_frequency_of_condition, &mondo_iri,
+                            &evidence_class);
+        }
     }
     Ok(())
 }
