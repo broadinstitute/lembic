@@ -1,5 +1,7 @@
 use crate::error::Error;
 use std::cmp::Ordering;
+use std::fmt;
+use std::fmt::Display;
 
 pub(crate) fn parse_mondo_id(mondo_id: &str) -> Result<u32, Error> {
     let mut parts = mondo_id.split(':');
@@ -91,5 +93,31 @@ impl Ord for OrdF64 {
         }
     }
 }
+
+pub(crate) struct PrettyF64 {
+    value: f64,
+}
+
+impl PrettyF64 {
+    pub(crate) fn new(value: f64) -> PrettyF64 { PrettyF64 { value } }
+}
+
+impl Display for PrettyF64 {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let normal = format!("{}", self.value);
+        if normal.len() <= 7 {
+            write!(f, "{}", normal)
+        } else {
+            let scientific = format!("{:e}", self.value);
+            if scientific.len() < normal.len() {
+                write!(f, "{}", scientific)
+            } else {
+                write!(f, "{}", normal)
+            }
+        }
+    }
+}
+
+pub(crate) fn pretty_f64(value: f64) -> PrettyF64 { PrettyF64::new(value) }
 
 

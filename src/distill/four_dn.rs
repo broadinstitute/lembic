@@ -1,5 +1,5 @@
 use crate::data::sources;
-use crate::distill::util::{parse_mondo_id, OrdF64};
+use crate::distill::util::{parse_mondo_id, pretty_f64, OrdF64};
 use crate::distill::write::GraphWriter;
 use crate::error::Error;
 use crate::mapper::hgnc::GeneMapper;
@@ -10,6 +10,7 @@ use crate::s3::S3Uri;
 use crate::vocabs::Concepts;
 use crate::{distill, json, s3};
 use std::collections::BTreeSet;
+use penyu::model::iri::Iri;
 use penyu::vocabs::obo::ns::RO;
 
 pub(crate) fn report_four_dn(runtime: &Runtime) -> Result<usize, Error> {
@@ -114,7 +115,7 @@ pub(crate) fn add_triples_four_dn<W: GraphWriter>(
     let disease_type = Concepts::Disease.concept_iri();
     let indirectly_positively_regulates_activity_of = RO.join_str("0011013");
     let contributes_to_frequency_of_condition = RO.join_str("0003306");
-    let regulates = RO.join_str("0002211");
+    let associated_with = Iri::from("associated_with");
     for SnpGenePhenotype {
         snp, gene, phenotype, mondo_id, posterior_probability
     } in summary.snp_genes_phenotypes {
@@ -123,8 +124,8 @@ pub(crate) fn add_triples_four_dn<W: GraphWriter>(
         let mondo_iri = penyu::vocabs::obo::Ontology::MONDO.create_iri(mondo_id);
         writer.add_node(&mondo_iri, disease_type, &phenotype);
         let evidence_class =
-            format!("posterior_probability={}", posterior_probability.value);
-        writer.add_edge(&gene_iri, &regulates, &mondo_iri, &evidence_class);
+            format!("posterior_probability={}", pretty_f64(posterior_probability.value));
+        writer.add_edge(&gene_iri, &associated_with, &mondo_iri, &evidence_class);
         if with_variants {
             let snp_iri = Concepts::Variant.create_internal_iri(&snp);
             writer.add_node(&snp_iri, variant_type, &snp);

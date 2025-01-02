@@ -11,6 +11,7 @@ use crate::vocabs::Concepts;
 use crate::{distill, json, s3};
 use std::cmp::max;
 use std::collections::BTreeMap;
+use crate::distill::util::pretty_f64;
 
 pub(crate) fn report_gtex_tstat(runtime: &Runtime) -> Result<usize, Error> {
     println!("From the GTEx tstat data:");
@@ -114,7 +115,7 @@ pub(crate) fn add_triples_gtex_tstat<W: GraphWriter>(writer: &mut W, runtime: &R
         for gene_tstat in gene_tstat_list {
             let gene_iri = distill::get_gene_iri(gene_mapper, &gene_tstat.gene, gene_tracker);
             writer.add_node(&gene_iri, gene_type, &gene_tstat.gene);
-            let evidence = format!("tstat={}", gene_tstat.tstat);
+            let evidence = format!("tstat={}", pretty_f64(gene_tstat.tstat));
             writer.add_edge(&biosample_iri, &over_expressed_in, &gene_iri, &evidence);
         }
     }

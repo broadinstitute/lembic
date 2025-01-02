@@ -23,6 +23,20 @@ mod commands {
         EXPORT_DDKG,
     ];
 }
+
+mod selections {
+    use crate::data;
+
+    pub(crate) const ALL: &str = "all";
+    pub(crate) const THREE: &str = "three";
+    pub(crate) const NOVARS: &str = "novars";
+    pub(crate) fn selections_help() -> String {
+        format!("Provide comma-separated list from '{}', '{}', '{}', and '{}'",
+                data::ALL_SOURCES.iter()
+                    .map(|source| source.to_string()).collect::<Vec<String>>()
+                    .join("', '") ,ALL, THREE, NOVARS)
+    }
+}
 pub(crate) enum Command {
     ListBuckets,
     PrintLines(S3Uri),
@@ -96,21 +110,26 @@ fn parse_selection_argument(arg: Option<String>) -> Result<Selection, Error> {
         Some(arg) => {
             let mut selection = Selection::new();
             for part in arg.split(',') {
-                if part == "three" {
+                if part == selections::ALL {
+                    selection.all_sources();
+                } else if part == selections::THREE {
                     selection.three_sources();
-                } else if part == "novars" {
+                } else if part == selections::NOVARS {
                     selection.no_variants();
-                } else {
-                    let source = Source::try_from(part)?;
+                } else if let Ok(source) = Source::try_from(part) {
                     selection.add_source(source);
+                } else {
+                    return Err(Error::from(format!(
+                        "Unknown selection '{}'. {}.", part, selections::selections_help()
+                    )));
                 }
             }
             Ok(selection)
         },
         None => {
-            let mut selection = Selection::new();
-            selection.all_sources();
-            Ok(selection)
+            Err(Error::from(
+                format!("No selection provided. {}", selections::selections_help())
+            ))
         },
     }
 }

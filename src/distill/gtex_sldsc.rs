@@ -1,6 +1,6 @@
 use crate::data::sources;
 use crate::distill::util;
-use crate::distill::util::OrdF64;
+use crate::distill::util::{pretty_f64, OrdF64};
 use crate::distill::write::GraphWriter;
 use crate::error::Error;
 use crate::mapper::tissues::TissueMapper;
@@ -133,7 +133,8 @@ pub(crate) fn add_triples_gtex_sldsc<W: GraphWriter>(
         let tissue_iri = distill::get_tissue_iri(tissue_mapper, &tissue, tissue_tracker);
         writer.add_node(&tissue_iri, tissue_type, &tissue);
         let evidence_class =
-            format!("enrichment={},p_value={}", enrichment.value, p_value.value);
+            format!("enrichment={},p_value={}", pretty_f64(enrichment.value),
+                    pretty_f64(p_value.value));
         writer.add_edge(&mondo_iri, &disease_has_location, &tissue_iri, &evidence_class);
     }
     Ok(())
