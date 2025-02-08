@@ -78,20 +78,20 @@ fn create_node_ids(nodes: &BTreeMap<Iri, NodeProps>) -> Result<BTreeMap<Iri, Str
 
 fn node_iri_to_id(iri: &Iri) -> Result<String, Error> {
     if let Some(hgnc) = iri.strip_prefix(penyu::vocabs::hgnc::NAMESPACE) {
-        Ok(format!("HGNC HGNC:{}", hgnc))
+        Ok(format!("HGNC:{}", hgnc))
     } else if let Some(mondo) = iri.strip_prefix(penyu::vocabs::obo::ns::MONDO) {
-        Ok(format!("MONDO MONDO:{}", mondo))
+        Ok(format!("MONDO:{}", mondo))
     } else if let Some(uberon) = iri.strip_prefix(penyu::vocabs::obo::ns::UBERON) {
-        Ok(format!("UBERON UBERON:{}", uberon))
+        Ok(format!("UBERON:{}", uberon))
     } else if let Some(uniprot) = iri.strip_prefix(penyu::vocabs::uniprot::NAMESPACE) {
-        Ok(format!("UNIPROT UNIPROT:{}", uniprot))
+        Ok(format!("UNIPROT:{}", uniprot))
     } else if let Some(efo) = iri.strip_prefix(penyu::vocabs::efo::NAMESPACE) {
-        Ok(format!("EFO EFO:{}", efo))
+        Ok(format!("EFO:{}", efo))
     } else if let Some(gene) = iri.strip_prefix(crate::vocabs::ns::GENE) {
-        Ok(format!("KP4CD-GENE KP4CD-GENE:{}", gene))
+        Ok(format!("KP4CD-GENE:{}", gene))
     } else if let Some(variant) = iri.strip_prefix(crate::vocabs::ns::VARIANT) {
         Ok(format!(
-            "KP4CD-VARIANT KP4CD-VARIANT:{}",
+            "KP4CD-VARIANT:{}",
             util::clean_up_label(&variant)
         ))
     } else {
@@ -108,7 +108,7 @@ fn write_nodes(
     node_iris_to_ids: &BTreeMap<Iri, String>,
 ) -> Result<(), Error> {
     let mut writer = BufWriter::new(File::create(path)?);
-    writeln!(writer, "node_id\tlabel")?;
+    writeln!(writer, "node_id\tnode_label")?;
     for (iri, props) in nodes {
         let id = node_iris_to_ids
             .get(iri)
