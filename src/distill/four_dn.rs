@@ -12,6 +12,7 @@ use crate::{distill, json, s3};
 use std::collections::BTreeSet;
 use penyu::model::iri::Iri;
 use penyu::vocabs::obo::ns::RO;
+use crate::mapper::variants::VariantMapper;
 
 pub(crate) fn report_four_dn(runtime: &Runtime) -> Result<usize, Error> {
     println!("From the 4DN gene bio data:");
@@ -106,7 +107,9 @@ pub(crate) fn add_triples_four_dn<W: GraphWriter>(
     writer: &mut W,
     runtime: &Runtime,
     gene_mapper: &GeneMapper,
+    variant_mapper: &VariantMapper,
     gene_tracker: &mut Tracker,
+    variant_tracker: &mut Tracker,
     with_variants: bool
 ) -> Result<(), Error> {
     let summary = distill_four_dn(runtime)?;
@@ -127,7 +130,7 @@ pub(crate) fn add_triples_four_dn<W: GraphWriter>(
             format!("posterior_probability={}", pretty_f64(posterior_probability.value));
         writer.add_edge(&gene_iri, &associated_with, &mondo_iri, &evidence_class);
         if with_variants {
-            let snp_iri = Concepts::Variant.create_internal_iri(&snp);
+            let snp_iri = distill::get_variant_iri(variant_mapper, &snp, variant_tracker);
             writer.add_node(&snp_iri, variant_type, &snp);
             writer.add_edge(&snp_iri, &indirectly_positively_regulates_activity_of, &gene_iri,
                             &evidence_class);

@@ -1,4 +1,5 @@
 use crate::error::Error;
+use crate::mapper::tissues::TissueMapper;
 use home::home_dir;
 use penyu::model::graph::Graph;
 use penyu::model::iri::Iri;
@@ -10,7 +11,6 @@ use std::collections::BTreeMap;
 use std::fs::File;
 use std::io::BufReader;
 use std::path::PathBuf;
-use crate::mapper::tissues::TissueMapper;
 
 pub(crate) struct VocabFiles {
     lembic_dir: PathBuf,
@@ -31,6 +31,9 @@ impl VocabFiles {
 
     pub(crate) fn hgnc_file(&self) -> PathBuf {
         self.lembic_dir.join("hgnc").join("hgnc_complete_set.txt")
+    }
+    pub(crate) fn variant_file(&self) -> PathBuf {
+        self.lembic_dir.join("varmap.tsv")
     }
     pub(crate) fn get_tissue_mapper(&self) -> Result<TissueMapper, Error> {
         let mut mappings: BTreeMap<String, Iri> = BTreeMap::new();

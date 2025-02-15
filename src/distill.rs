@@ -18,6 +18,7 @@ use crate::vocabs::Concepts;
 use penyu::model::iri::Iri;
 use std::path::Path;
 use crate::distill::write::ddkg::DdkgWriter;
+use crate::mapper::variants::VariantMapper;
 
 pub(crate) fn report_stats(runtime: &Runtime, selection: &Selection) -> Result<(), Error> {
     let mut n_assertions: usize = 0;
@@ -52,6 +53,7 @@ fn output_graph<W: GraphWriter>(runtime: &Runtime, selection: &Selection, writer
     let mut tissue_tracker = Tracker::new("tissues".to_string());
     let mut gene_tracker = Tracker::new("genes".to_string());
     let mut protein_tracker = Tracker::new("proteins".to_string());
+    let mut variant_tracker = Tracker::new("variants".to_string());
     for source in &selection.sources {
         match source {
             Source::GtexTstat => {
@@ -77,11 +79,14 @@ fn output_graph<W: GraphWriter>(runtime: &Runtime, selection: &Selection, writer
             }
             Source::FourDnGeneBio => {
                 let gene_mapper = mappers_chest.get_gene_mapper()?;
+                let variant_mapper = mappers_chest.get_variant_mapper()?;
                 four_dn::add_triples_four_dn(
                     writer,
                     runtime,
                     gene_mapper,
+                    variant_mapper,
                     &mut gene_tracker,
+                    &mut variant_tracker,
                     selection.with_variants
                 )?;
             }
@@ -161,3 +166,18 @@ fn get_protein_uri(protein_mapper: &ProteinMapper, protein: &str, tracker: &mut 
         }
     }
 }
+
+fn get_variant_iri(variant_mapper: &VariantMapper, variant: &str, tracker: &mut Tracker) -> Iri {
+    match variant_mapper.map(variant) {
+        Some(iri) => {
+            tracker.note_mapped();
+            iri.clone()
+        }
+        None => {
+            tracker.note_missing(variant.to_string());
+            Concepts::Variant.create_internal_iri(variant)
+        }
+    }
+}
+
+

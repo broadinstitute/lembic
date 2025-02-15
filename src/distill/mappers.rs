@@ -1,14 +1,16 @@
 use crate::error::Error;
 use crate::mapper::files::VocabFiles;
-use crate::mapper::hgnc;
+use crate::mapper::{clingen, hgnc};
 use crate::mapper::hgnc::{GeneMapper, Mappers, ProteinMapper};
 use crate::mapper::tissues::TissueMapper;
 use std::cell::OnceCell;
+use crate::mapper::variants::VariantMapper;
 
 pub(crate) struct MappersChest {
     vocab_files: VocabFiles,
     tissue_mapper: OnceCell<Result<TissueMapper, Error>>,
-    gene_protein_mappers: OnceCell<Result<Mappers, Error>>
+    gene_protein_mappers: OnceCell<Result<Mappers, Error>>,
+    variant_mapper: OnceCell<Result<VariantMapper, Error>>,
 }
 
 impl MappersChest {
@@ -16,7 +18,8 @@ impl MappersChest {
         let vocab_files = VocabFiles::new()?;
         let tissue_mapper: OnceCell<Result<TissueMapper, Error>> = OnceCell::new();
         let gene_protein_mappers: OnceCell<Result<Mappers, Error>> = OnceCell::new();
-        Ok(MappersChest { vocab_files, tissue_mapper, gene_protein_mappers })
+        let variant_mapper: OnceCell<Result<VariantMapper, Error>> = OnceCell::new();
+        Ok(MappersChest { vocab_files, tissue_mapper, gene_protein_mappers, variant_mapper })
     }
     pub(crate) fn get_tissue_mapper(&self) -> Result<&TissueMapper, Error> {
         let result = self.tissue_mapper.get_or_init(|| {
@@ -39,6 +42,15 @@ impl MappersChest {
         });
         match result {
             Ok(mappers) => Ok(mappers),
+            Err(error) => Err(error.approximate_clone())
+        }
+    }
+    pub(crate) fn get_variant_mapper(&self) -> Result<&VariantMapper, Error> {
+        let result = self.variant_mapper.get_or_init(|| {
+            clingen::get_variant_mapper(&self.vocab_files.variant_file())
+        });
+        match result {
+            Ok(mapper) => Ok(mapper),
             Err(error) => Err(error.approximate_clone())
         }
     }

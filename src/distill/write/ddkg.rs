@@ -7,6 +7,7 @@ use std::fs::File;
 use std::io::BufWriter;
 use std::path::{Path, PathBuf};
 use std::io::Write;
+use crate::mapper::clingen;
 
 const NODES_FILE: &str = "nodes.tsv";
 const EDGES_FILE: &str = "edges.tsv";
@@ -89,6 +90,8 @@ fn node_iri_to_id(iri: &Iri) -> Result<String, Error> {
         Ok(format!("EFO:{}", efo))
     } else if let Some(gene) = iri.strip_prefix(crate::vocabs::ns::GENE) {
         Ok(format!("KP4CD-GENE:{}", gene))
+    } else if let Some(variant) = iri.strip_prefix(clingen::NS) {
+        Ok(format!("CLINGEN:{}", variant))
     } else if let Some(variant) = iri.strip_prefix(crate::vocabs::ns::VARIANT) {
         Ok(format!(
             "KP4CD-VARIANT:{}",
