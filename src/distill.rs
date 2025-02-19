@@ -168,14 +168,15 @@ fn get_protein_uri(protein_mapper: &ProteinMapper, protein: &str, tracker: &mut 
 }
 
 fn get_variant_iri(variant_mapper: &VariantMapper, variant: &str, tracker: &mut Tracker) -> Iri {
-    match variant_mapper.map(variant) {
+    let variant = variant.replace([':', '_', ' '], "-");
+    match variant_mapper.map(&variant) {
         Some(iri) => {
             tracker.note_mapped();
             iri.clone()
         }
         None => {
             tracker.note_missing(variant.to_string());
-            Concepts::Variant.create_internal_iri(variant)
+            Concepts::Variant.create_internal_iri(&variant)
         }
     }
 }
