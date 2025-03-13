@@ -1,4 +1,3 @@
-use crate::distill::util;
 use crate::distill::write::GraphWriter;
 use crate::error::Error;
 use penyu::model::iri::Iri;
@@ -7,6 +6,8 @@ use std::fs::File;
 use std::io::BufWriter;
 use std::path::{Path, PathBuf};
 use std::io::Write;
+use log::warn;
+use crate::io;
 use crate::mapper::clingen;
 
 const NODES_FILE: &str = "nodes.tsv";
@@ -68,40 +69,41 @@ impl GraphWriter for DdkgWriter {
     }
 }
 
-fn create_node_ids(nodes: &BTreeMap<Iri, NodeProps>) -> Result<BTreeMap<Iri, String>, Error> {
+fn create_node_ids(nodes: &BTreeMap<Iri, NodeProps>)
+    -> Result<BTreeMap<Iri, String>, Error> {
     let mut node_ids: BTreeMap<Iri, String> = BTreeMap::new();
     for iri in nodes.keys() {
-        let id = node_iri_to_id(iri)?;
-        node_ids.insert(iri.clone(), id);
+        match node_iri_to_id(iri) {
+            Some(id) => {
+                node_ids.insert(iri.clone(), id);
+            }
+            None => {
+               warn!("No mapping for IRI: {}", iri);
+            }
+        }
     }
     Ok(node_ids)
 }
 
-fn node_iri_to_id(iri: &Iri) -> Result<String, Error> {
+fn node_iri_to_id(iri: &Iri) -> Option<String> {
     if let Some(hgnc) = iri.strip_prefix(penyu::vocabs::hgnc::NAMESPACE) {
-        Ok(format!("HGNC:{}", hgnc))
+        Some(format!("HGNC:{}", hgnc))
     } else if let Some(mondo) = iri.strip_prefix(penyu::vocabs::obo::ns::MONDO) {
-        Ok(format!("MONDO:{}", mondo))
+        Some(format!("MONDO:{}", mondo))
     } else if let Some(uberon) = iri.strip_prefix(penyu::vocabs::obo::ns::UBERON) {
-        Ok(format!("UBERON:{}", uberon))
+        Some(format!("UBERON:{}", uberon))
     } else if let Some(uniprot) = iri.strip_prefix(penyu::vocabs::uniprot::NAMESPACE) {
-        Ok(format!("UNIPROT:{}", uniprot))
+        Some(format!("UNIPROTKB:{}", uniprot))
     } else if let Some(efo) = iri.strip_prefix(penyu::vocabs::efo::NAMESPACE) {
-        Ok(format!("EFO:{}", efo))
-    } else if let Some(gene) = iri.strip_prefix(crate::vocabs::ns::GENE) {
-        Ok(format!("KP4CD-GENE:{}", gene))
+        Some(format!("EFO:{}", efo))
+    } else if let Some(_gene) = iri.strip_prefix(crate::vocabs::ns::GENE) {
+        None
     } else if let Some(variant) = iri.strip_prefix(clingen::NS) {
-        Ok(format!("CLINGEN:{}", variant))
-    } else if let Some(variant) = iri.strip_prefix(crate::vocabs::ns::VARIANT) {
-        Ok(format!(
-            "KP4CD-VARIANT:{}",
-            util::clean_up_label(&variant)
-        ))
+        Some(format!("CLINGEN:{}", variant))
+    } else if let Some(_variant) = iri.strip_prefix(crate::vocabs::ns::VARIANT) {
+        None
     } else {
-        Err(Error::from(format!(
-            "Using IRIs like this are not implemented: {}",
-            iri
-        )))
+        None
     }
 }
 
@@ -110,7 +112,7 @@ fn write_nodes(
     nodes: &BTreeMap<Iri, NodeProps>,
     node_iris_to_ids: &BTreeMap<Iri, String>,
 ) -> Result<(), Error> {
-    let mut writer = BufWriter::new(File::create(path)?);
+    let mut writer = BufWriter::new(io::create_file(path)?);
     writeln!(writer, "node_id\tnode_label")?;
     for (iri, props) in nodes {
         let id = node_iris_to_ids
@@ -126,7 +128,7 @@ fn write_edges(
     edges: &BTreeMap<Edge, String>,
     node_iris_to_ids: &BTreeMap<Iri, String>,
 ) -> Result<(), Error> {
-    let mut writer = BufWriter::new(File::create(path)?);
+    let mut writer = BufWriter::new(io::create_file(path)?);
     writeln!(writer, "subject_id\trelationship\tobject_id\tevidence_class")?;
     for (triple, evidence_class) in edges {
         let subject_id = node_iris_to_ids

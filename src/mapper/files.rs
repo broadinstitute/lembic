@@ -11,6 +11,7 @@ use std::collections::BTreeMap;
 use std::fs::File;
 use std::io::BufReader;
 use std::path::PathBuf;
+use crate::io;
 
 pub(crate) struct VocabFiles {
     lembic_dir: PathBuf,
@@ -46,7 +47,7 @@ impl VocabFiles {
 
 pub(crate) fn labels_to_iri(mappings: &mut BTreeMap<String, Iri>, file: &PathBuf)
     -> Result<(), Error> {
-    let graph = xml::read(&mut BufReader::new(File::open(file)?))?;
+    let graph = xml::read(&mut BufReader::new(io::open_file(file)?))?;
     for triple in graph.triples() {
         let Triple { subject, predicate, object } = triple;
         if &predicate == rdfs::LABEL {

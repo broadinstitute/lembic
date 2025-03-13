@@ -6,13 +6,14 @@ use penyu::model::iri::Iri;
 use crate::error::Error;
 use crate::mapper::variants::VariantMapper;
 use std::io::BufRead;
+use crate::io;
 
 const URL_PREFIX: &str = "http://reg.clinicalgenome.org/allele/";
 pub(crate) const NS: &Iri = &Iri::new_str(URL_PREFIX);
 
 pub(crate) fn get_variant_mapper(variant_file: &PathBuf) -> Result<VariantMapper, Error> {
     let mut mappings: BTreeMap<String, Iri> = BTreeMap::new();
-    let reader = BufReader::new(File::open(variant_file)?);
+    let reader = BufReader::new(io::open_file(variant_file)?);
     for line in reader.lines() {
         let line = line?;
         let mut parts = line.split('\t');

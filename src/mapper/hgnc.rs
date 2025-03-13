@@ -3,6 +3,7 @@ use penyu::model::iri::Iri;
 use std::collections::BTreeMap;
 use std::io::{BufRead, BufReader};
 use std::path::Path;
+use crate::io;
 
 pub(crate) struct Mappers {
     pub(crate) gene_mapper: GeneMapper,
@@ -40,7 +41,7 @@ pub(crate) fn get_mappers(file: &Path) -> Result<Mappers, Error> {
     let mut aliases: BTreeMap<String, u32> = BTreeMap::new();
     let mut previous: BTreeMap<String, u32> = BTreeMap::new();
     let mut genes_to_proteins: BTreeMap<u32, String> = BTreeMap::new();
-    let reader = BufReader::new(std::fs::File::open(file)?);
+    let reader = BufReader::new(io::open_file(file)?);
     let mut lines = reader.lines();
     let _ = lines.next(); // Skip header
     for line in lines {
