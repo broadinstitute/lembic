@@ -2,7 +2,6 @@ use crate::distill::write::GraphWriter;
 use crate::error::Error;
 use penyu::model::iri::Iri;
 use std::collections::BTreeMap;
-use std::fs::File;
 use std::io::BufWriter;
 use std::path::{Path, PathBuf};
 use std::io::Write;

@@ -1,12 +1,11 @@
+use crate::error::Error;
+use crate::io;
+use crate::mapper::variants::VariantMapper;
+use penyu::model::iri::Iri;
 use std::collections::BTreeMap;
-use std::fs::File;
+use std::io::BufRead;
 use std::io::BufReader;
 use std::path::PathBuf;
-use penyu::model::iri::Iri;
-use crate::error::Error;
-use crate::mapper::variants::VariantMapper;
-use std::io::BufRead;
-use crate::io;
 
 const URL_PREFIX: &str = "http://reg.clinicalgenome.org/allele/";
 pub(crate) const NS: &Iri = &Iri::new_str(URL_PREFIX);

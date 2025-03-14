@@ -1,4 +1,5 @@
 use crate::error::Error;
+use crate::io;
 use crate::mapper::tissues::TissueMapper;
 use home::home_dir;
 use penyu::model::graph::Graph;
@@ -8,10 +9,8 @@ use penyu::model::triple::Triple;
 use penyu::read::xml;
 use penyu::vocabs::rdfs;
 use std::collections::BTreeMap;
-use std::fs::File;
 use std::io::BufReader;
 use std::path::PathBuf;
-use crate::io;
 
 pub(crate) struct VocabFiles {
     lembic_dir: PathBuf,
