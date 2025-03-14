@@ -1,7 +1,7 @@
 use crate::distill::write::GraphWriter;
 use crate::error::Error;
 use penyu::model::iri::Iri;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::io::BufWriter;
 use std::path::{Path, PathBuf};
 use std::io::Write;
@@ -11,6 +11,7 @@ use crate::mapper::clingen;
 
 const NODES_FILE: &str = "nodes.tsv";
 const EDGES_FILE: &str = "edges.tsv";
+const UNMAPPED_FILE: &str = "unmapped";
 
 struct NodeProps {
     label: String,
@@ -61,9 +62,12 @@ impl GraphWriter for DdkgWriter {
     fn serialize(&self) -> Result<(), Error> {
         let iris_to_ids = create_node_ids(&self.nodes)?;
         let nodes_file = self.folder.join(NODES_FILE);
-        write_nodes(&nodes_file, &self.nodes, &iris_to_ids)?;
+        let mut unmapped: BTreeSet<Iri> = BTreeSet::new();
+        write_nodes(&nodes_file, &self.nodes, &iris_to_ids, &mut unmapped)?;
         let edges_file = self.folder.join(EDGES_FILE);
-        write_edges(&edges_file, &self.edges, &iris_to_ids)?;
+        write_edges(&edges_file, &self.edges, &iris_to_ids, &mut unmapped)?;
+        let unmapped_file = self.folder.join(UNMAPPED_FILE);
+        write_unmapped(&unmapped_file, &unmapped)?;
         Ok(())
     }
 }
@@ -110,14 +114,16 @@ fn write_nodes(
     path: &Path,
     nodes: &BTreeMap<Iri, NodeProps>,
     node_iris_to_ids: &BTreeMap<Iri, String>,
+    unmapped: &mut BTreeSet<Iri>
 ) -> Result<(), Error> {
     let mut writer = BufWriter::new(io::create_file(path)?);
     writeln!(writer, "node_id\tnode_label")?;
     for (iri, props) in nodes {
-        let id = node_iris_to_ids
-            .get(iri)
-            .ok_or_else(|| Error::from(format!("Node IRI not found in map: {}", iri)))?;
-        writeln!(writer, "{}\t{}", id, props.label)?;
+        let id = node_iris_to_ids.get(iri);
+        match id {
+            Some(id) => writeln!(writer, "{}\t{}", id, props.label)?,
+            None => { unmapped.insert(iri.clone()); }
+        }
     }
     Ok(())
 }
@@ -126,25 +132,37 @@ fn write_edges(
     path: &Path,
     edges: &BTreeMap<Edge, String>,
     node_iris_to_ids: &BTreeMap<Iri, String>,
+    unmapped: &mut BTreeSet<Iri>
+
 ) -> Result<(), Error> {
     let mut writer = BufWriter::new(io::create_file(path)?);
     writeln!(writer, "subject_id\trelationship\tobject_id\tevidence_class")?;
     for (triple, evidence_class) in edges {
-        let subject_id = node_iris_to_ids
-            .get(&triple.subject)
-            .ok_or_else(|| Error::from(
-                format!("Subject IRI not found in map: {}", triple.subject)
-            ))?;
-        let object_id = node_iris_to_ids
-            .get(&triple.object)
-            .ok_or_else(|| Error::from(
-                format!("Object IRI not found in map: {}", triple.object)
-            ))?;
-        writeln!(
-            writer,
-            "{}\t{}\t{}\t{}",
-            subject_id, triple.predicate, object_id, evidence_class
-        )?;
+        let subject_id = node_iris_to_ids.get(&triple.subject);
+        match subject_id {
+            None => { unmapped.insert(triple.subject.clone()); },
+            Some(subject_id) => {
+                let object_id = node_iris_to_ids.get(&triple.object);
+                match object_id {
+                    None => { unmapped.insert(triple.object.clone()); },
+                    Some(object_id) => {
+                        writeln!(
+                            writer,
+                            "{}\t{}\t{}\t{}",
+                            subject_id, triple.predicate, object_id, evidence_class
+                        )?;
+                    }
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
+fn write_unmapped(path: &Path, unmapped: &BTreeSet<Iri>) -> Result<(), Error> {
+    let mut writer = BufWriter::new(io::create_file(path)?);
+    for iri in unmapped {
+        writeln!(writer, "{}", iri)?;
     }
     Ok(())
 }
